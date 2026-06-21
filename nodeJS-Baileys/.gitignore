@@ -1,0 +1,12 @@
+node_modules/
+.env
+
+.auth/
+baileys_auth/
+
+*.log
+
+.clasp.json
+session/
+sessions/
+auth_info/
