@@ -1,154 +1,111 @@
-# 💰 Financial Tracker Bot — Roadmap
+# 💰 Git Finance
 
-> WhatsApp-based personal finance tracker powered by AI + Google Sheets
+> Your AI-powered financial assistant on WhatsApp.
 
----
-
-## 🚀 MVP Status
-
-### ✅ Sudah Selesai
-
-| Fitur | Deskripsi |
-|---|---|
-| **Catat Transaksi** | Income & Outcome dengan berbagai format nominal (`rb`, `jt`, `k`, raw) |
-| **Auto-detect** | Kategori, rekening, dan tipe transaksi otomatis dari teks natural |
-| **Cek Saldo** | Saldo spesifik satu rekening atau ringkasan semua rekening |
-| **Transfer Antar Rekening** | Saldo asal berkurang, tujuan bertambah, tercatat di sheet |
-| **Rekap Bulanan** | Periode otomatis ikut tanggal gajian + breakdown per kategori |
-| **Safe Mode** | Confidence rendah → minta konfirmasi sebelum eksekusi |
-| **Intent Validation** | No amount → reject, type invalid → reject |
-| **Prompt Injection Guard** | Instruksi berbahaya dalam pesan diabaikan |
-| **Normalisasi Rekening** | "Jago" dan "Bank Jago" → dikenali sebagai rekening yang sama |
-| **AI Fallback Chain** | 7 model fallback jika primary kena rate limit |
+Helps you track expenses, manage accounts, monitor budgets, and gain financial insights through simple WhatsApp conversations.
 
 ---
 
-## 📋 To-Do
+## 🚀 Current Status
 
-### 🔴 Mandatory Features
+### MVP Features
 
-#### [TRANSACTION]
-- [ ] **Hapus Transaksi Terakhir**
-  - Input: `"undo"`, `"hapus transaksi terakhir"`
-  - Action: Hapus baris terakhir di sheet Transaksi + kembalikan saldo rekening terkait
-
-#### [BUDGETING]
-- [ ] **Budget Per Kategori**
-  - Pre-condition: Budget disimpan di spreadsheet/config
-  - Input: `"budget makan"`, `"budget transport"`
-  - Output:
-    ```
-    Progress Budget Makan:
-    Rp450.000 / Rp1.500.000 (30%)
-    ```
-  - Additional: Tampilkan progress budget otomatis setiap transaksi outcome dicatat
-
-#### [ANALYTICS]
-- [ ] **Top Spending Category**
-  - Output:
-    ```
-    🥇 Makan : Rp1.200.000
-    🥈 Transport : Rp700.000
-    🥉 Hiburan : Rp500.000
-    ```
-  - Kondisi: Berdasarkan total pengeluaran periode berjalan (dari awal gajian)
-
-#### [REPORTING]
-- [ ] **Rekap Mingguan**
-  - Input: `"rekap mingguan"`
-  - Output: Total pemasukan, total pengeluaran, top kategori, ringkasan minggu berjalan
-
-- [ ] **AI Insight Rekap Bulanan**
-  - Input: `"rekap"`, `"rekap bulanan"`
-  - Output:
-    - Perbandingan vs bulan sebelumnya
-    - Top spending category
-    - Trend pengeluaran
-    - Budget analysis
-    - AI recommendation
+| Feature                     | Status |
+| --------------------------- | ------ |
+| Transaction Recording       | ✅      |
+| Income & Outcome Tracking   | ✅      |
+| Auto Category Detection     | ✅      |
+| Auto Account Detection      | ✅      |
+| Balance Checking            | ✅      |
+| Monthly Report              | ✅      |
+| Safe Mode Confirmation      | ✅      |
+| Prompt Injection Protection | ✅      |
+| Account Normalization       | ✅      |
+| AI Fallback Chain           | ✅      |
 
 ---
 
-### 🟡 Optional Features
+## 🎯 Roadmap
 
-#### [ADVANCED REPORTING]
-- [ ] **Custom Rekap Period**
-  - Input: `"rekap dari tanggal 25"`
-  - Action: Periode mengikuti tanggal yang diinput user
-  - Default: 28 → 27 bulan berikutnya
+### Version 1.0 — Public Beta
 
-#### [GOOGLE SHEET]
-- [ ] **Sheet Rekap Otomatis**
-  - Generate summary otomatis sebagai sumber dashboard
+Fokus pada stabilitas, keamanan, dan pengalaman pengguna.
 
-#### [DASHBOARD]
-- [ ] **Web Dashboard**
-  - Daftar transaksi & rekening
-  - Rekap bulanan & mingguan
-  - Budget tracking
-  - Top spending category
-  - AI insight
+| Feature                  | Status |
+| ------------------------ | ------ |
+| Email Verification       | ⏳      |
+| Undo Transaction         | ⏳      |
+| Delete Transaction by ID | ⏳      |
+| Weekly Report            | ⏳      |
+| Budget Tracking          | ⏳      |
+| Top Spending Category    | ⏳      |
+| AI Monthly Insight       | ⏳      |
+| Input Limit (Freemium)   | ⏳      |
+| Docker Deployment        | ⏳      |
+| VPS Deployment           | ⏳      |
+| Monitoring & Logging     | ⏳      |
 
----
+**Target Outcome**
 
-### 🔵 Technical Improvement
-
-#### [TESTING]
-- [ ] Comprehensive Unit Testing
-- [ ] Integration Testing
-- [ ] API Endpoint Testing
-- [ ] Automated test coverage reporting
-
-#### [CODE QUALITY]
-- [ ] Refactor transaction service
-- [ ] Refactor account service
-- [ ] Improve error handling
-- [ ] Centralized logger
-
-#### [CONTAINERIZATION]
-- [ ] Create Docker Compose Configuration
-- [ ] Environment Variable Management
-- [ ] Persistent Session Volume
-- [ ] Multi-stage Docker Build
-- [ ] Production-ready Docker Image
-
-#### [INFRASTRUCTURE]
-- [ ] Deploy Docker Container to VPS
-- [ ] Configure Nginx Reverse Proxy
-- [ ] Setup SSL (Let's Encrypt)
-- [ ] Setup CI/CD with GitHub Actions
-- [ ] Automated Google Sheet Backup
-- [ ] Automated Container Restart Policy
-
-#### [MONITORING]
-- [ ] Application logging
-- [ ] Uptime monitoring
-- [ ] WhatsApp session health check
-
-#### [DOCUMENTATION]
-- [ ] API Documentation
-- [ ] Deployment Guide
-- [ ] Architecture Diagram
-- [ ] Self Hosting Guide
+* Multi-user ready
+* Public beta ready
+* Dockerized deployment
+* Authentication enabled
 
 ---
 
-### 🗄️ Database (Future)
+### Version 2.0 — Growth Release
 
-- [ ] **Design SQL Schema**
-- [ ] **Migrate Data Layer**
-- [ ] **Index Optimization**
+Fokus pada insight, dashboard, dan monetisasi.
+
+| Feature                     | Status |
+| --------------------------- | ------ |
+| Web Dashboard               | ⏳      |
+| PostgreSQL Migration        | ⏳      |
+| Premium Subscription        | ⏳      |
+| Advanced Analytics          | ⏳      |
+| AI Financial Insight Engine | ⏳      |
+| Custom Report Period        | ⏳      |
+| Budget Recommendation       | ⏳      |
+| Spending Trend Analysis     | ⏳      |
+
+**Target Outcome**
+
+* SaaS-ready architecture
+* Advanced financial insights
+* Premium feature support
 
 ---
 
-## 📊 Model Fallback Chain
+## 🤖 AI Fallback Chain
 
-| Priority | Model | Tier |
-|---|---|---|
-| 1 | `openai/gpt-oss-120b:free` | T1 — Primary terbukti |
-| 2 | `meta-llama/llama-3.3-70b-instruct:free` | T1 — Quality tinggi |
-| 3 | `qwen/qwen3-next-80b-a3b-instruct:free` | T2 — Throughput tinggi |
-| 4 | `openai/gpt-oss-20b:free` | T3 — Versi kecil primary |
-| 5 | `nvidia/nemotron-3-super-120b-a12b:free` | T2 — Model besar |
-| 6 | `google/gemma-4-31b-it:free` | T2 — Reliable |
-| 7 | `nvidia/nemotron-3-nano-30b-a3b:free` | T3 — Paling cepat |
+| Priority | Model               |
+| -------- | ------------------- |
+| 1        | GPT OSS 120B        |
+| 2        | Llama 3.3 70B       |
+| 3        | Qwen 3 Next 80B     |
+| 4        | GPT OSS 20B         |
+| 5        | Nemotron Super 120B |
+| 6        | Gemma 4 31B         |
+| 7        | Nemotron Nano 30B   |
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer            | Technology     |
+| ---------------- | -------------- |
+| Runtime          | Node.js        |
+| WhatsApp Gateway | Baileys        |
+| AI Provider      | OpenRouter     |
+| Storage          | Google Sheets  |
+| Containerization | Docker         |
+| Reverse Proxy    | Nginx          |
+| CI/CD            | GitHub Actions |
+| Future Database  | PostgreSQL     |
+
+---
+
+## 📌 Vision
+
+Build a simple, affordable, and AI-powered personal finance assistant that works directly from WhatsApp.
