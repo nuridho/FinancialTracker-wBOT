@@ -1,8 +1,8 @@
 # 💰 Git Finance
 
-> Your AI-powered financial assistant on WhatsApp.
+> Your AI-powered finance partner on WhatsApp.
 
-Helps you track expenses, manage accounts, monitor budgets, and gain financial insights through simple WhatsApp conversations.
+Designed to help you understand your spending, stay on budget, and make better financial decisions through simple conversations.
 
 ---
 
