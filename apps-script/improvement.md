@@ -91,21 +91,6 @@ Fokus pada insight, dashboard, dan monetisasi.
 
 ---
 
-## 🛠️ Tech Stack
-
-| Layer            | Technology     |
-| ---------------- | -------------- |
-| Runtime          | Node.js        |
-| WhatsApp Gateway | Baileys        |
-| AI Provider      | OpenRouter     |
-| Storage          | Google Sheets  |
-| Containerization | Docker         |
-| Reverse Proxy    | Nginx          |
-| CI/CD            | GitHub Actions |
-| Future Database  | PostgreSQL     |
-
----
-
 ## 📌 Vision
 
-Build a simple, affordable, and AI-powered personal finance assistant that works directly from WhatsApp.
+Build a simple, affordable, and AI-powered personal finance partner that works directly from WhatsApp.
