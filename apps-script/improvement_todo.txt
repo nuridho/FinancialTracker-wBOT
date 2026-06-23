@@ -1,0 +1,524 @@
+/* ================================
+Ranking List TO-DO
+================================ */
+/*
+1. [USER VERIFICATION] -> Fondasi keamanan utama sebelum bot digunakan secara publik.
+2. [EMAIL SERVICE] -> Dibutuhkan untuk mengirim verification code kepada user.
+3. [AUTH MIDDLEWARE] -> Memastikan seluruh fitur hanya dapat diakses oleh user terverifikasi.
+4. [VERIFICATION CODE] -> Core authentication flow tidak dapat berjalan tanpa validasi kode.
+5. [SESSION MANAGEMENT] -> Menghubungkan nomor WhatsApp dengan identitas user yang telah diverifikasi.
+6. [RATE LIMITING] -> Mencegah spam email dan brute-force verification code.
+7. [TRANSACTION] - Hapus Transaksi Terakhir -> Saat ini masih memiliki risiko ketidaksinkronan saldo rekening.
+8. [TRANSACTION] - Hapus Transaksi Tertentu -> Mempermudah koreksi transaksi tanpa mengganggu histori lainnya.
+9. [TRANSACTION] - Rebuild / Sync Saldo Rekening -> Menjadi recovery mechanism ketika saldo dan transaksi tidak sinkron.
+10. [ACCOUNT MANAGEMENT] - Switch Uang Antar Rekening -> Fitur finansial penting yang mempengaruhi saldo dan histori transaksi.
+11. [BUDGETING] -> Memberikan value langsung kepada user untuk mengontrol pengeluaran.
+12. [ANALYTICS] - Top Spending Category -> Insight sederhana dengan effort implementasi yang rendah.
+13. [REPORTING] - Rekap Mingguan -> Memudahkan monitoring kondisi keuangan mingguan.
+14. [REPORTING] - AI Insight Rekap Bulanan -> Menjadi fitur pembeda utama dibanding finance tracker biasa.
+15. [AI OPTIMIZATION] - Intent Router -> Mengurangi request AI yang sebenarnya bisa diproses secara rule-based.
+16. [AI OPTIMIZATION] - Rule-Based First Strategy -> Menghemat token dan biaya penggunaan model.
+17. [AI OPTIMIZATION] - Structured JSON Output -> Mempermudah parsing dan mengurangi token output.
+18. [AI OPTIMIZATION] - Prompt Compression -> Mengurangi penggunaan context window secara signifikan.
+19. [AI OPTIMIZATION] - Dynamic Context Injection -> Hanya mengirim informasi yang relevan ke model.
+20. [AI OPTIMIZATION] - Multi Model Routing -> Mengoptimalkan biaya inference berdasarkan kompleksitas request.
+21. [AI OPTIMIZATION] - AI Insight Cache -> Menghindari request AI yang berulang.
+22. [Improvement Input] -> Meningkatkan user experience dengan multi transaksi dalam satu chat.
+23. [LIMIT INPUT] -> Fondasi monetisasi untuk versi freemium dan premium.
+24. [TESTING] - Comprehensive Unit Testing -> Menjamin logic bisnis tetap stabil ketika fitur bertambah.
+25. [TESTING] - Integration Testing -> Memastikan integrasi AI, Spreadsheet, dan WhatsApp berjalan baik.
+26. [TESTING] - API Endpoint Testing -> Mengurangi risiko regression pada endpoint internal.
+27. [TESTING] - Automated Test Coverage Reporting -> Menjaga kualitas codebase dalam jangka panjang.
+28. [CODE QUALITY] - Improve Error Handling -> Mengurangi crash dan memperjelas penyebab error.
+29. [CODE QUALITY] - Centralized Logger -> Mempermudah debugging dan monitoring aplikasi.
+30. [CODE QUALITY] - Refactor Transaction Service -> Mengurangi technical debt pada service paling kritikal.
+31. [CODE QUALITY] - Refactor Account Service -> Menjaga konsistensi logic saldo rekening.
+32. [CONTAINERIZATION] - Dockerization -> Menstandarkan environment development dan deployment.
+33. [CONTAINERIZATION] - Persistent WhatsApp Session -> Mencegah login ulang ketika container restart.
+34. [CONTAINERIZATION] - Environment Variable Management -> Mengamankan credential dan konfigurasi aplikasi.
+35. [CONTAINERIZATION] - Production Ready Docker Image -> Menyiapkan aplikasi untuk deployment production.
+36. [INFRASTRUCTURE] - Deploy to VPS -> Membuat bot dapat berjalan 24/7.
+37. [INFRASTRUCTURE] - Automated Restart Policy -> Menjaga service tetap hidup saat terjadi crash.
+38. [MONITORING] - Application Logging -> Menyediakan observability dasar pada production.
+39. [MONITORING] - WhatsApp Session Health Check -> Mengurangi risiko bot tidak merespons akibat disconnect.
+40. [MONITORING] - Uptime Monitoring -> Memberikan notifikasi ketika service down.
+41. [INFRASTRUCTURE] - Automated Google Sheet Backup -> Mengurangi risiko kehilangan data.
+42. [INFRASTRUCTURE] - Setup SSL (Let's Encrypt) -> Mengamankan komunikasi menuju service.
+43. [INFRASTRUCTURE] - Configure Nginx Reverse Proxy -> Menyiapkan arsitektur production yang lebih baik.
+44. [INFRASTRUCTURE] - Setup CI/CD with GitHub Actions -> Mempercepat dan menstandarkan deployment.
+45. [GOOGLE SHEET] - Tambah Sheet Rekap -> Menjadi fondasi reporting dan dashboard.
+46. [DATABASE] - Design SQL Database Schema -> Persiapan migrasi dari Google Sheet ke database relasional.
+47. [DATABASE] - Migrate Data Layer to PostgreSQL -> Dibutuhkan ketika jumlah user dan transaksi meningkat.
+48. [DATABASE] - Database Index Optimization -> Meningkatkan performa query ketika data semakin besar.
+49. [ADVANCED REPORTING] - Custom Rekap Period -> Menambah fleksibilitas periode laporan berdasarkan tanggal gajian.
+50. [DOCUMENTATION] - Architecture Diagram -> Membantu memahami struktur sistem secara keseluruhan.
+51. [DOCUMENTATION] - Deployment Guide -> Mempermudah setup dan maintenance server.
+52. [DOCUMENTATION] - API Documentation -> Berguna ketika API mulai digunakan oleh pihak lain.
+53. [DASHBOARD] -> Sebaiknya dibuat setelah backend, auth, dan database sudah stabil.
+
+*/
+
+// ================================================================================================================================================================
+
+
+/* ================================
+TO-DO : AUTHENTICATION
+================================ */
+/*
+	[USER VERIFICATION]
+	☐ Mandatory Email Verification
+		DESCRIPTION:
+			User wajib memverifikasi email sebelum dapat menggunakan seluruh fitur bot.
+		FLOW:
+			Step 1:
+				User mengirim pesan apa saja.
+				OUTPUT:
+					🔒 Akun belum terverifikasi.
+					Silakan kirim email Anda.
+					Contoh:
+					user@example.com
+			Step 2:
+				User mengirim email.
+				Example:
+					user@example.com
+				ACTION:
+					* Generate verification code
+					* Kirim verification code ke email
+				OUTPUT:
+					📧 Kode verifikasi berhasil dikirim.
+					Untuk verifikasi, kirim:
+					user@example.com verify-5829174630
+			Step 3:
+				User mengirim kode verifikasi.
+				Example:
+					user@example.com verify-5829174630
+				ACTION:
+					* Validasi verification code
+					* Simpan mapping nomor WhatsApp ↔ email
+					* Tandai user sebagai VERIFIED
+				OUTPUT:
+					✅ Verifikasi berhasil.
+					Selamat datang di Financial Tracker Bot.
+		ACCESS RULE:	
+			* User yang belum terverifikasi tidak dapat menggunakan fitur bot.
+			* Seluruh transaksi, saldo, rekap, dan fitur AI ditolak sampai verifikasi berhasil.
+		BUSINESS RULE:
+			* Mapping berdasarkan nomor WhatsApp (data.from).
+			* Setelah verifikasi berhasil, nomor WhatsApp dikaitkan dengan email.
+			* Jika user menggunakan nomor WhatsApp yang berbeda, maka wajib melakukan verifikasi ulang.
+			* Satu nomor WhatsApp hanya dapat terhubung ke satu email.
+		GOOGLE SHEET:
+			Sheet:
+				UserAuth
+			Columns:
+				- phone_number
+				- email
+				- is_verified
+				- created_at
+*/
+
+/* ================================
+TO-DO : AUTH INFRASTRUCTURE
+================================ */
+/*
+	[EMAIL SERVICE]
+	☐ Setup Email Provider
+		TARGET:
+			- Nodemailer SMTP
+			- Resend API (Future)
+		ACTION:
+			* Generate verification code
+			* Send verification email
+			* Handle email delivery failure
+	
+	[AUTH MIDDLEWARE]
+	☐ Authentication Middleware
+		ACTION:
+			* Check verification status sebelum memproses pesan
+			* Block seluruh command untuk user yang belum terverifikasi
+			* Redirect user ke flow verifikasi email
+			
+	[VERIFICATION CODE]
+	☐ Verification Code Management
+		ACTION:
+			* Generate random 10 digit code
+			* Set expiration time
+			* Validate verification code
+		RULE:
+			* Code berlaku 10 menit
+			* Code hanya dapat digunakan satu kali
+	
+	[SESSION MANAGEMENT]
+	☐ WhatsApp Number Binding
+		ACTION:
+			* Simpan relasi nomor WhatsApp ↔ email
+			* Validasi identitas berdasarkan data.from
+			* Wajib verifikasi ulang jika menggunakan nomor berbeda
+	
+	[RATE LIMITING]
+	☐ Verification Request Protection
+		ACTION:
+			* Batasi jumlah request kode verifikasi
+			* Cegah spam email
+			* Cegah brute force verification code
+
+	[FUTURE MIGRATION]
+	☐ Migrate UserAuth Storage
+		CURRENT:
+			Google Sheet (UserAuth)
+		
+		FUTURE:
+			PostgreSQL Users Table
+*/
+
+
+/* ================================
+TO-DO : MANDATORY FEATURES
+================================ */
+
+/*
+
+  [Improvement Input]
+  ☐ Multi ADD Input
+		INPUT:
+			"warteg 25 rb bca bensin 50k gopay"
+			"gaji 7.4 juta jago transfer ke gopay 1.5 juta"
+      "sushi 60rb gopay cashback 20rb gopay"
+    ACTION:
+			* AI Mendeteksi adanya multi input
+			* AI mengklasifikasi beberapa input dalam 1 bubble chat dalam input output
+			* Jika Status input dan output ada dalam 1 chat. maka nampilin Detail Input dan output dalam 1 pesan response
+      * Jika Kategorinya berbeda, misal warteg itu makan, bensin itu transportasi maka akan nampilin detail 2 input itu dalma 1 pesan response 
+
+  [ACCOUNT MANAGEMENT]
+  ☐ Switch Uang Antar Rekening
+    INPUT:
+      "Transfer 500rb dari BCA ke Dana"
+      "Pindah 1jt dari Jago ke BCA"
+    ACTION:
+      * Saldo rekening asal berkurang
+      * Saldo rekening tujuan bertambah
+      * Transaksi tersimpan ke Sheet Transaksi
+      * Saldo rekening diperbarui pada Sheet Rekening
+    OUTPUT:
+      Tipe: SWITCH
+    BUSINESS RULE:
+      * Jika rekening asal dan tujuan sama-sama terdaftar pada sistem,maka transaksi otomatis dikategorikan sebagai SWITCH.
+      * SWITCH tidak dihitung sebagai pemasukan maupun pengeluaran, karena hanya perpindahan saldo antar rekening pribadi.
+      * Jika rekening tujuan tidak ditemukan pada daftar rekening pengguna, maka transaksi dikategorikan sebagai OUTCOME.
+
+    PROOFING / AMBIGUITY CHECK:
+      * Setelah transaksi SWITCH berhasil dicatat, sistem menampilkan informasi bahwa transaksi telah dikategorikan sebagai SWITCH.
+      * Sistem juga memberikan panduan koreksi apabila interpretasi transaksi tidak sesuai dengan maksud pengguna.
+    EXAMPLE OUTPUT:
+      "📝 Catatan Keuangan by @git ━━━━━━━━━━━━━━ ℹ️ ID: TRX-2286A8FC5FBD ↔️ Tipe: SWITCH 💰 Jumlah: Rp500.000 ━━━━━━━━━━━━━━ 💳 Rekening Asal: BCA 💳 Rekening Tujuan: Dana ━━━━━━━━━━━━━━ Tercatat ✅ ℹ️ Catatan: Transaksi dicatat sebagai SWITCH antar rekening pribadi. Jika ini seharusnya transfer ke orang lain(OUTCOME), ketik: • Ketik "undo" • Atau "hapus {trx}" 💡 Untuk transfer ke 
+    ACCEPTANCE CRITERIA:
+      * Saldo rekening asal berkurang sesuai nominal transfer.
+      * Saldo rekening tujuan bertambah sesuai nominal transfer.
+      * Riwayat transaksi SWITCH tercatat.
+      * SWITCH tidak mempengaruhi total income maupun outcome.
+      * User dapat membatalkan transaksi menggunakan fitur Undo.
+	
+	[REPORTING]
+	☐ AI Insight Rekap Bulanan
+		INPUT:
+			"rekap"
+			"rekap bulanan"
+		OUTPUT:
+			* Perbandingan bulan sebelumnya
+			* Top spending category
+			* Trend pengeluaran
+			* Budget analysis
+			* AI recommendation
+
+	☐ Rekap Mingguan	
+		INPUT:
+			"rekap mingguan"
+		OUTPUT:	
+			* Total pemasukan
+			* Total pengeluaran
+			* Top kategori
+			* Ringkasan minggu berjalan
+
+	[TRANSACTION]
+	☐ Hapus Transaksi Terakhir
+		INPUT:
+			"undo"
+			"hapus transaksi terakhir"
+		ACTION:
+			* Menghapus transaksi terakhir
+			* Mengembalikan saldo rekening terkait
+      * Memperbarui Sheet Rekening sesuai transaksi yang dibatalkan
+    BUSINESS RULE:
+      * INCOME → saldo rekening dikurangi kembali
+      * OUTCOME → saldo rekening ditambahkan kembali
+      * SWITCH → saldo rekening asal dikembalikan dan saldo rekening tujuan dikurangi kembali
+    OUTPUT : 
+      "Transaksi {trxId} yang merupakan kategori {cat} berhasil dihapus" 
+
+  ☐ Hapus Transaksi tertentu
+		INPUT:
+			"hapus transaksi TRX-{trxId}"
+      "Hapus {trxId}"
+		ACTION:
+			* Menghapus transaksi berdasarkan {trxId}
+      * Mengembalikan perubahan saldo yang disebabkan transaksi tersebut
+      * Memperbarui Sheet Rekening
+      * Memvalidasi bahwa transaksi masih tersedia
+    BUSINESS RULE:
+      * INCOME → saldo rekening dikurangi kembali
+      * OUTCOME → saldo rekening ditambahkan kembali
+      * SWITCH → saldo rekening asal dikembalikan dan saldo rekening tujuan dikurangi kembali
+    OUTPUT:
+      "Transaksi TRX-{trxId} yang merupakan kategori {cat} berhasil dihapus"
+    ACCEPTANCE CRITERIA:
+      * Data transaksi terhapus dari Sheet Transaksi
+      * Saldo rekening kembali ke kondisi sebelum transaksi dibuat
+      * Sheet Rekening selalu sinkron dengan Sheet Transaksi
+      * Tidak boleh terjadi saldo ganda atau rollback ganda
+      * Jika TRX ID tidak ditemukan, tampilkan pesan error yang sesuai
+	
+	[BUDGETING]	
+	☐ Budget Per Kategori
+		PRE-CONDITION:
+			* Budget disimpan pada spreadsheet/config	
+		INPUT:
+			"budget makan"
+			"budget transport"
+		OUTPUT:
+			Progress Budget:
+			Rp450.000 / Rp1.500.000 (30%)
+		Additional:	
+			* Tampilkan progress budget setiap transaksi outcome dicatat
+
+	[ANALYTICS]	
+	☐ Top Spending Category
+		OUTPUT:
+			🥇 Makan
+			🥈 Transport
+			🥉 Hiburan
+		CONDITION : Berdasarkan total pengeluaran periode berjalan. Dari Awal Gajian
+*/
+
+/* ================================
+TO-DO : AI OPTIMIZATION
+================================ */
+/*
+	[INTENT ROUTER]
+	☐ Route Non-AI Commands
+		ACTION:
+			* Saldo -> Rule Based
+			* Rekap -> Rule Based
+			* Undo -> Rule Based
+			* Delete Transaction -> Rule Based
+			* Budget -> Rule Based
+		GOAL:
+			* Mengurangi request ke LLM
+			* Mempercepat response time
+
+	[RULE-BASED FIRST]
+	☐ AI as Fallback Strategy
+		ACTION:
+			* Jalankan parser regex terlebih dahulu
+			* Gunakan AI hanya jika intent tidak terdeteksi
+		GOAL:
+			* Menghemat token
+			* Mengurangi biaya inference
+
+	[PROMPT OPTIMIZATION]
+	☐ Prompt Compression
+		ACTION:
+			* Kurangi instruksi yang berulang
+			* Ringkas daftar kategori dan rekening
+			* Hilangkan context yang tidak relevan
+		GOAL:
+			* Mengurangi token input
+
+	[DYNAMIC CONTEXT]
+	☐ Context Injection
+		ACTION:
+			* Hanya kirim rekening yang relevan
+			* Hanya kirim kategori yang relevan
+			* Hanya kirim data yang dibutuhkan model
+		GOAL:
+			* Meminimalkan context window
+
+	[STRUCTURED OUTPUT]
+	☐ JSON Output Standardization
+		ACTION:
+			* Seluruh output AI menggunakan JSON Schema
+			* Hindari output naratif yang panjang
+		EXAMPLE:
+			{
+				"type": "OUTCOME",
+				"amount": 25000,
+				"account": "Dana",
+				"category": "Makan"
+			}
+		GOAL:
+			* Mengurangi token output
+			* Mempermudah parsing response
+
+	[MULTI MODEL ROUTING]
+	☐ Smart Model Selection
+		ACTION:
+			* Parsing sederhana -> Small Model
+			* Parsing kompleks -> Large Model
+			* AI Insight -> Premium Model
+		GOAL:
+			* Mengoptimalkan biaya dan performa
+
+	[CACHING]
+	☐ AI Insight Cache
+		ACTION:
+			* Simpan hasil AI Insight Bulanan
+			* Simpan hasil AI Insight Mingguan
+			* Reuse hasil yang masih valid
+		GOAL:
+			* Mengurangi request berulang
+
+	[CONVERSATION MEMORY]
+	☐ Stateless Processing
+		ACTION:
+			* Tidak mengirim seluruh histori chat
+			* Hanya mengirim input aktif dan context yang diperlukan
+		GOAL:
+			* Mengurangi token usage
+			* Meningkatkan performa
+
+	[FALLBACK SYSTEM]
+	☐ Improve Fallback Chain
+		ACTION:
+			* Retry otomatis ketika rate limit
+			* Fallback ke model berikutnya
+			* Logging model failure
+		GOAL:
+			* Meningkatkan reliability AI service
+
+	[OBSERVABILITY]
+	☐ AI Usage Monitoring
+		ACTION:
+			* Track token usage
+			* Track cost estimation
+			* Track model success rate
+			* Track fallback frequency
+		GOAL:
+			* Mengontrol biaya operasional AI
+*/
+
+/* ================================
+TO-DO : OPTIONAL FEATURES
+================================ */
+/*
+	[ADVANCED REPORTING]
+	☐ Custom Rekap Period
+		INPUT:
+			"rekap dari tanggal 25"
+		ACTION:
+			* Periode mengikuti tanggal gajian user
+		DEFAULT:
+			28 → 27 bulan berikutnya
+
+	[GOOGLE SHEET]
+	☐ Tambah Sheet Rekap
+		ACTION:
+			* Generate summary otomatis
+			* Menjadi sumber dashboard
+
+	[DASHBOARD]
+	☐ Web Dashboard
+		FEATURES:
+			* Daftar transaksi
+			* Daftar rekening
+			* Rekap bulanan
+			* Rekap mingguan
+			* Budget tracking
+			* Top spending category
+			* AI insight
+*/
+
+/* ================================
+TO-DO : DATABASE
+================================ */
+
+/*
+  [DESIGN DATABASE]
+	☐ Design SQL Database Schema
+		TABLES:
+			- users
+			- accounts
+			- transactions
+			- categories
+			- budgets
+  
+  [DATABASE MIGRATION]
+	☐ Migrate Data Layer
+		Google Sheet -> SQL Database
+		TARGET:
+		- PostgreSQL (Recommended)
+		- MySQL
+
+  [OPTIMIZE DATABASE]
+	☐ Database Index Optimization
+		INDEX:
+			- transaction_date
+			- category
+			- account_id
+			- transaction_type
+*/
+
+/* ================================
+TO-DO : TECHNICAL IMPROVEMENT
+================================ */
+/*
+  [TESTING]
+  ☐ Comprehensive Unit Testing
+  ☐ Integration Testing
+  ☐ API Endpoint Testing
+  ☐ Automated test coverage reporting
+
+  [CODE QUALITY]
+  ☐ Refactor transaction service
+  ☐ Refactor account service
+  ☐ Improve error handling
+  ☐ Centralized logger
+
+  [CONTAINERIZATION]
+  ☐ Create Docker Compose Configuration
+  ☐ Environment Variable Management
+  ☐ Persistent Session Volume
+  ☐ Multi-stage Docker Build
+  ☐ Production-ready Docker Image
+
+  [INFRASTRUCTURE]
+  ☐ Deploy Docker Container to VPS
+  ☐ Configure Nginx Reverse Proxy
+  ☐ Setup SSL (Let's Encrypt)
+  ☐ Setup CI/CD with GitHub Actions
+  ☐ Automated Google Sheet Backup
+  ☐ Automated Container Restart Policy
+  
+  [MONITORING]
+  ☐ Application logging
+  ☐ Uptime monitoring
+  ☐ WhatsApp session health check
+
+  [DOCUMENTATION]
+  ☐ API Documentation
+  ☐ Deployment Guide
+  ☐ Architecture Diagram
+  ☐ Self Hosting Guide
+*/
+
+/* ================================
+TO-DO : MONETIZATION 
+================================ */
+/*
+  [LIMIT INPUT]
+  ☐ Setiap freemium user akan dapat input limit 40
+  ☐ Setiap paid user unlock all feature dan no minimum limit input
+
+  [USER PLAN MANAGEMENT] 
+  [PAYMENT INTEGRATION (Future)]
+
+*/
