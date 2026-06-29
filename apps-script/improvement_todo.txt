@@ -2,7 +2,9 @@
 Ranking List TO-DO
 ================================ */
 /*
-1. [USER VERIFICATION] -> Fondasi keamanan utama sebelum bot digunakan secara publik.
+1.1 [DATABASE] - Design SQL Database Schema -> DONE.
+1.2 [DATABASE] - Migrate Data Layer to PostgreSQL Supabase -> Working progress 
+1.3. [USER VERIFICATION] -> Fondasi keamanan utama sebelum bot digunakan secara publik.
 2. [EMAIL SERVICE] -> Dibutuhkan untuk mengirim verification code kepada user.
 3. [AUTH MIDDLEWARE] -> Memastikan seluruh fitur hanya dapat diakses oleh user terverifikasi.
 4. [VERIFICATION CODE] -> Core authentication flow tidak dapat berjalan tanpa validasi kode.
@@ -47,8 +49,6 @@ Ranking List TO-DO
 43. [INFRASTRUCTURE] - Configure Nginx Reverse Proxy -> Menyiapkan arsitektur production yang lebih baik.
 44. [INFRASTRUCTURE] - Setup CI/CD with GitHub Actions -> Mempercepat dan menstandarkan deployment.
 45. [GOOGLE SHEET] - Tambah Sheet Rekap -> Menjadi fondasi reporting dan dashboard.
-46. [DATABASE] - Design SQL Database Schema -> Persiapan migrasi dari Google Sheet ke database relasional.
-47. [DATABASE] - Migrate Data Layer to PostgreSQL -> Dibutuhkan ketika jumlah user dan transaksi meningkat.
 48. [DATABASE] - Database Index Optimization -> Meningkatkan performa query ketika data semakin besar.
 49. [ADVANCED REPORTING] - Custom Rekap Period -> Menambah fleksibilitas periode laporan berdasarkan tanggal gajian.
 50. [DOCUMENTATION] - Architecture Diagram -> Membantu memahami struktur sistem secara keseluruhan.
