@@ -5,41 +5,60 @@
 Track income, expenses, and balances through simple conversations — no app to install, no form to fill. Just chat.
 
 ---
-
-## 📁 Repository Structure
-
 ```
-git-finance/
-├── apps-script/          # Google Apps Script — AI classifier & webhook handler
-│   ├── Code.gs           # Main logic: doPost, data layer, AI classifier
-│   └── Testing.gs        # Unit testing engine (DRY RUN & LIVE mode)
-│
-├── nodejs-baileys/       # WhatsApp bridge — receives & forwards messages
-│   ├── index.js          # Bot entry point (Baileys + Apps Script relay)
-│   ├── .env              # Environment variables (lihat .env.example)
-│   └── package.json
-│
-└── supabase/             # Database
-    └── schema.sql        # Full PostgreSQL schema + functions + RLS
+messaging-service/   ← WhatsApp gateway (Baileys), zero business logic
+finance-service/     ← Semua logic keuangan, Supabase, AI classifier
 ```
 
+```
+User WA ──► messaging-service ──HTTP──► finance-service ──► Supabase
+                                              │
+                                              └──► OpenRouter AI
+```
 ---
 
-## 🏗️ Architecture
+## Struktur finance-service
 
 ```
-User (WhatsApp)
-      │
-      ▼
-NodeJS + Baileys          ← Terima pesan, extract teks, forward ke Apps Script
-      │
-      ▼
-Google Apps Script        ← AI classifier, intent validation, safe mode
-      │
-      ├── OpenRouter API  ← Multi-model AI fallback chain (7 model)
-      │
-      └── Supabase        ← PostgreSQL: simpan transaksi & saldo
+src/
+├── config/
+│   └── index.js              # semua env var terpusat
+├── modules/
+│   ├── ai/
+│   │   └── ai.service.js     # OpenRouter classifier + model fallback
+│   ├── account/
+│   │   └── account.service.js  # getSaldo, getAllSaldo, updateSaldo
+│   ├── recap/
+│   │   └── recap.service.js  # generateRekap
+│   ├── transaction/
+│   │   └── transaction.service.js  # insertTransaksi, normalizeRekening
+│   └── user/
+│       └── user.service.js   # getCurrentUserId (hardcode → WA auth nanti)
+├── routes/
+│   └── finance.route.js      # POST /process, GET /health
+├── utils/
+│   ├── helpers.js            # formatRupiah, formatTanggalIndo, dll.
+│   └── supabase.js           # sbGet, sbPost, sbRpc
+└── index.js
 ```
+
+## API finance-service
+
+### `POST /process`
+Body:
+```json
+{ "from": "628123456789", "body": "Makan siang 25rb" }
+```
+Response:
+```json
+{ "reply": "📝 *Catatan Keuangan*\n..." }
+```
+
+### `GET /health`
+```json
+{ "status": "ok", "service": "finance-service" }
+```
+
 
 **Flow per pesan:**
 1. User kirim pesan WhatsApp
@@ -144,37 +163,6 @@ Simpan UUID yang muncul — dipakai di Apps Script.
 
 ---
 
-### 2. Apps Script — Setup Webhook
-
-1. Buka [script.google.com](https://script.google.com) → New project
-2. Buat dua file:
-   - `Code.gs` → paste isi `apps-script/Code.gs`
-   - `Testing.gs` → paste isi `apps-script/Testing.gs`
-3. Isi konfigurasi di bagian atas `Code.gs`:
-
-```javascript
-const SUPABASE_URL = "https://XXXXXXXXXXXXXXXX.supabase.co";
-const SUPABASE_KEY = "your-service-role-key";
-const OPENROUTER_API_KEY = "your-openrouter-key";
-```
-
-4. Isi UUID hasil step Supabase di fungsi `getCurrentUserId()`:
-```javascript
-function getCurrentUserId(waNumber) {
-  return "uuid-dari-supabase-kamu";
-}
-```
-
-5. Test koneksi: jalankan fungsi `debugSupabase()` → harus muncul `✅ Supabase OK`
-
-6. Deploy sebagai Web App:
-   - **Deploy → New deployment → Web App**
-   - Execute as: **Me**
-   - Who has access: **Anyone**
-   - Copy **Web App URL** → dipakai di NodeJS
-
----
-
 ### 3. OpenRouter — Setup AI
 
 1. Daftar di [openrouter.ai](https://openrouter.ai)
@@ -212,21 +200,19 @@ Setelah terhubung, kirim pesan ke nomor WA kamu sendiri untuk test.
 
 ## 🧪 Testing
 
-Testing ada dua mode — ganti variabel `TEST_MODE` di `Testing.gs`:
-
-```javascript
-var TEST_MODE = "DRY";   // ← aman, Supabase tidak disentuh
-var TEST_MODE = "LIVE";  // ← transaksi benar-benar masuk Supabase
+**Jalankan test:**
+1. node runner.js all      # semua 57 kasus (Part 1 + Part 2)
+2. node runner.js part1    # Section A-E (32 kasus) — Income/Outcome/Transfer/Balance
+3. node runner.js part2    # Section F-I (25 kasus) — Recap/Ambiguous/General/Security
+4. node runner.js quick    # 2 kasus cepat untuk sanity check
 ```
 
-| Mode | Kapan dipakai |
-|---|---|
-| `DRY` | Selalu — untuk test AI classifier & intent detection |
-| `LIVE` | Sesekali — untuk verifikasi end-to-end flow ke Supabase |
-
-**Jalankan test:**
-1. Pilih fungsi `unitTesting_Part1` di dropdown → Run *(Section A–E)*
-2. Setelah selesai, pilih `unitTesting_Part2` → Run *(Section F–I)*
+Atau via npm:
+```
+1. npm test          # all
+2. npm run test:part1
+3. npm run test:part2
+4. npm run test:quick
 
 **Test coverage:**
 
@@ -276,41 +262,17 @@ transactions
 ---
 
 ## 🗑️ Data Cleanup (SQL)
-
-Jalankan di **Supabase SQL Editor** sesuai kebutuhan:
-
-```sql
--- Hapus semua transaksi user tertentu & reset saldo ke 0
--- Ganti UUID sesuai user kamu
-do $$
-declare
-  v_user_id uuid := 'uuid-user-kamu-di-sini';
-begin
-  delete from transactions where user_id = v_user_id;
-  update accounts set balance = 0, updated_at = now() where user_id = v_user_id;
-end;
-$$;
-
--- Verifikasi setelah cleanup
-select name, balance from accounts where user_id = 'uuid-user-kamu-di-sini';
-select count(*) as total_transaksi from transactions where user_id = 'uuid-user-kamu-di-sini';
 ```
+- pindah ke folder testing 
+# pakai npm
+npm run reset
 
-```sql
--- Hapus SEMUA data (transactions + accounts) — semua user
--- ⚠️  Hati-hati, tidak bisa di-undo
-truncate table transactions restart identity cascade;
-update accounts set balance = 0, updated_at = now();
+# atau langsung
+node reset-user.js
+
+# untuk user ID berbeda (opsional)
+node reset-user.js <uuid-lain>
 ```
-
-```sql
--- Hapus transaksi dalam rentang waktu tertentu
-delete from transactions
-where user_id    = 'uuid-user-kamu-di-sini'
-  and created_at >= '2026-06-01'
-  and created_at <  '2026-07-01';
-```
-
 ---
 
 ## 🤖 AI Fallback Chain

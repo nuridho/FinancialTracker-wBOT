@@ -6,7 +6,8 @@
     "test":       "node runner.js all",
     "test:part1": "node runner.js part1",
     "test:part2": "node runner.js part2",
-    "test:quick": "node runner.js quick"
+    "test:quick": "node runner.js quick",
+    "reset":      "node reset-user.js"
   },
   "dependencies": {
     "axios": "^1.7.2",
