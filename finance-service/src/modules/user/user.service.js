@@ -1,4 +1,4 @@
-const { sbRpc } = require("../utils/supabase");
+const { sbRpc } = require("../../utils/supabase");
 
 // ================================
 // AUTH — USER IDENTITY
