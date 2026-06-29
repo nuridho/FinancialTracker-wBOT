@@ -11,24 +11,25 @@ const pino = require("pino");
 const axios = require("axios");
 const qrcode = require("qrcode-terminal");
 
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+// ================================
+// CONFIG
+// ================================
+const FINANCE_SERVICE_URL = process.env.FINANCE_SERVICE_URL;
 const SESSION_NAME = process.env.SESSION_NAME || "wa-finance-bot";
 
-if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("XXXXXXXX")) {
+if (!FINANCE_SERVICE_URL) {
   console.error(
-    "❌ APPS_SCRIPT_URL belum diisi dengan benar di file .env. " +
-      "Cek instruksi di README.md."
+    "❌ FINANCE_SERVICE_URL belum diisi di file .env.\n" +
+      "Contoh: FINANCE_SERVICE_URL=http://localhost:3001"
   );
   process.exit(1);
 }
 
-/* ================================
-   START BOT
-================================ */
+// ================================
+// START BOT
+// ================================
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState(
-    "auth_info_baileys"
-  );
+  const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
   const { version } = await fetchLatestBaileysVersion();
 
   const sock = makeWASocket({
@@ -43,7 +44,9 @@ async function startBot() {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
-      console.log("\n📱 Scan QR code ini dengan WhatsApp kamu (Linked Devices):\n");
+      console.log(
+        "\n📱 Scan QR code ini dengan WhatsApp kamu (Linked Devices):\n"
+      );
       qrcode.generate(qr, { small: true });
     }
 
@@ -52,10 +55,10 @@ async function startBot() {
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
       console.log(
-        "⚠️ Koneksi terputus.",
+        "⚠️  Koneksi terputus.",
         shouldReconnect
           ? "Mencoba reconnect..."
-          : "Logged out, hapus folder auth_info_baileys lalu scan ulang QR."
+          : "Logged out — hapus folder auth_info_baileys lalu scan ulang QR."
       );
 
       if (shouldReconnect) startBot();
@@ -77,26 +80,25 @@ async function startBot() {
   });
 }
 
-/* ================================
-   HANDLE PESAN MASUK
-================================ */
+// ================================
+// HANDLE PESAN MASUK
+// ================================
 async function handleIncomingMessage(sock, msg) {
   if (!msg.message) return;
-  if (msg.key.fromMe) return; // abaikan pesan dari bot sendiri (hindari loop)
+  if (msg.key.fromMe) return; // hindari loop
 
   const remoteJid = msg.key.remoteJid;
   if (!remoteJid) return;
-  if (remoteJid.endsWith("@g.us")) return; // abaikan pesan grup
+  if (remoteJid.endsWith("@g.us")) return; // abaikan grup
   if (remoteJid === "status@broadcast") return;
 
   const body = extractMessageText(msg.message);
-  if (!body) return; // bukan pesan teks (gambar/sticker/voice note/dll), skip
+  if (!body) return; // bukan teks (gambar/sticker/voice/dll)
 
   const sender = remoteJid.split("@")[0];
-
   console.log(`📩 Pesan masuk dari ${sender}: ${body}`);
 
-  const replyText = await forwardToAppsScript(sender, body);
+  const replyText = await forwardToFinanceService(sender, body);
 
   if (replyText) {
     await sock.sendMessage(remoteJid, { text: replyText });
@@ -104,9 +106,9 @@ async function handleIncomingMessage(sock, msg) {
   }
 }
 
-/* ================================
-   AMBIL TEKS DARI BERBAGAI TIPE PESAN
-================================ */
+// ================================
+// EKSTRAK TEKS DARI BERBAGAI TIPE PESAN
+// ================================
 function extractMessageText(message) {
   return (
     message.conversation ||
@@ -117,32 +119,29 @@ function extractMessageText(message) {
   );
 }
 
-/* ================================
-   FORWARD KE APPS SCRIPT WEBHOOK
-================================ */
-async function forwardToAppsScript(sender, body) {
+// ================================
+// FORWARD KE FINANCE-SERVICE
+// ================================
+async function forwardToFinanceService(sender, body) {
   try {
     const response = await axios.post(
-      APPS_SCRIPT_URL,
-      {
-        session: SESSION_NAME,
-        from: sender,
-        body: body,
-      },
+      `${FINANCE_SERVICE_URL}/process`,
+      { from: sender, body },
       {
         headers: { "Content-Type": "application/json" },
         timeout: 30000,
       }
     );
 
-    // doPost di Apps Script return lewat ContentService -> response.data berupa string
-    return typeof response.data === "string"
-      ? response.data
-      : JSON.stringify(response.data);
+    // finance-service always returns { reply: "..." }
+    return response.data?.reply ?? null;
   } catch (err) {
-    console.error("❌ Gagal menghubungi Apps Script:", err.message);
+    console.error("❌ Gagal menghubungi finance-service:", err.message);
     return "⚠️ Maaf, terjadi kesalahan saat mencatat ke sistem. Coba lagi nanti ya.";
   }
 }
 
+// ================================
+// BOOT
+// ================================
 startBot().catch((err) => console.error("Fatal error:", err));

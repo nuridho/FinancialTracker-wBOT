@@ -3,6 +3,7 @@ node_modules/
 
 .auth/
 baileys_auth/
+auth_info_baileys/
 
 *.log
 
