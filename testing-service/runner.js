@@ -142,36 +142,114 @@ async function runTests(testCases, partLabel) {
 // ─── test cases ───────────────────────────────────────────────────────────────
 
 const PART1 = [
-  // ══ SECTION A — INCOME ══════════════════════════════════════
-  { pesan: "Gajian bulan ini 7.5 juta masuk ke BCA",         expect: "Tercatat ✅", label: "A1 Income - nominal juta desimal" },
-  { pesan: "Dapat bonus 500rb dari kerja sampingan ke Dana",  expect: "Tercatat ✅", label: "A2 Income - nominal rb" },
-  { pesan: "Terima transferan 1500000 ke Jago",              expect: "Tercatat ✅", label: "A3 Income - nominal raw" },
-  { pesan: "Dapet duit 2jt dari jual barang, masuk GoPay",   expect: "Tercatat ✅", label: "A4 Income - nominal jt informal" },
-  { pesan: "Income freelance 3.500.000 BCA",                 expect: "Tercatat ✅", label: "A5 Income - kata Income + titik pemisah" },
-  { pesan: "Cashback 15k dari Shopee masuk Dana",            expect: "Tercatat ✅", label: "A6 Income - nominal k style" },
+    // ══════════════════════════════════════════════════════════════
+  // SECTION A — INCOME (Happy Path)
+  // Urutan ini SENGAJA ditaruh di awal, mensimulasikan "abis gajian"
+  // sebelum ada pengeluaran apapun. Setiap akun di-isi dulu sebelum
+  // dipakai outcome/transfer di section berikutnya.
+  // ══════════════════════════════════════════════════════════════
 
-  // ══ SECTION B — OUTCOME ══════════════════════════════════════
-  { pesan: "Makan siang 25000 pake cash",                    expect: "Tercatat ✅", label: "B1 Outcome - Makan / Cash" },
-  { pesan: "Beli bensin 50rb gopay",                         expect: "Tercatat ✅", label: "B2 Outcome - Transport / GoPay shorthand" },
-  { pesan: "Belanja bulanan Indomaret 350000 BCA",           expect: "Tercatat ✅", label: "B3 Outcome - Belanja / BCA" },
-  { pesan: "Bayar listrik PLN 200.000 BCA",                  expect: "Tercatat ✅", label: "B4 Outcome - Tagihan / nominal titik" },
-  { pesan: "Nonton bioskop 100k dana",                       expect: "Tercatat ✅", label: "B5 Outcome - Hiburan / Dana" },
-  { pesan: "Beli obat apotek 75000 cash",                    expect: "Tercatat ✅", label: "B6 Outcome - Kesehatan / Cash" },
-  { pesan: "Kopi kenangan 35rb gopay",                       expect: "Tercatat ✅", label: "B7 Outcome - brand name as item" },
-  { pesan: "Top up e-toll 200rb BCA",                        expect: "Tercatat ✅", label: "B8 Outcome - top up non e-wallet" },
-  { pesan: "Cicilan motor 850.000 BCA",                      expect: "Tercatat ✅", label: "B9 Outcome - cicilan / nominal titik" },
-  { pesan: "Langganan Netflix 65000 BCA",                    expect: "Tercatat ✅", label: "B10 Outcome - subscription / brand" },
-  { pesan: "Dinner sama keluarga 450rb cash",                expect: "Tercatat ✅", label: "B11 Outcome - mixed EN-ID" },
-  { pesan: "Parkir 2000 cash",                               expect: "Tercatat ✅", label: "B12 Outcome - nominal sangat kecil" },
-  { pesan: "Beli laptop 12jt BCA",                           expect: "Tercatat ✅", label: "B13 Outcome - nominal besar" },
-  { pesan: "Bayar kontrakan 2.500.000 BCA",                  expect: "Tercatat ✅", label: "B14 Outcome - nominal 2.5jt format titik" },
+  // A1. Gajian bulanan — pengisian utama BCA
+  { pesan: "Gajian bulan ini 7.5 juta masuk ke BCA",          expect: "Tercatat ✅", label: "A1 Income - (nominal juta desimal)" },
+  // A2. Bonus — pengisian Dana
+  { pesan: "Dapat bonus 500rb dari kerja sampingan ke Dana",  expect: "Tercatat ✅", label: "A2 Income - (nominal rb)" },
+  // A3. Transferan masuk — pengisian Bank Jago
+  { pesan: "Terima transferan 1500000 ke Jago",               expect: "Tercatat ✅", label: "A3 Income - (nominal raw)" },
+  // A4. Jual barang — pengisian GoPay
+  { pesan: "Dapet duit 2jt dari jual barang, masuk GoPay",    expect: "Tercatat ✅", label: "A4 Income - (nominal jt informal)" },
+  // A5. Freelance tambahan — top-up BCA lagi (buffer sebelum outcome besar)
+  { pesan: "Income freelance 3.500.000 BCA",                  expect: "Tercatat ✅", label: "A5 Income - (kata Income + titik pemisah)" },
+  // A6. Cashback — pengisian Dana lagi
+  { pesan: "Cashback 15k dari Shopee masuk Dana",             expect: "Tercatat ✅", label: "A6 Income - (nominal k style)" },
+  // A7. Uang saku — pengisian Cash (ditambahkan agar Section B Cash tidak minus)
+  { pesan: "Dikasih uang saku 300rb cash dari ortu",          expect: "Tercatat ✅", label: "A7 Income - (tambahan agar Cash tidak minus)" },
 
-  // ══ SECTION C — TRANSFER ══════════════════════════════════════
-  { pesan: "Transfer 500rb dari BCA ke Gopay",               expect: "Transfer ✅", label: "C1 Transfer - format standar" },
-  { pesan: "Pindahin 1jt dari Jago ke BCA",                  expect: "Transfer ✅", label: "C2 Transfer - kata pindahin" },
-  { pesan: "Top up GoPay 200rb dari BCA",                    expect: "Transfer ✅", label: "C3 Transfer - top up e-wallet" },
-  { pesan: "Send 300000 BCA ke Dana",                        expect: "Transfer ✅", label: "C4 Transfer - kata send EN" },
+  // Saldo setelah Section A:
+  //   BCA   = 7.500.000 + 3.500.000 = 11.000.000
+  //   Dana  =   500.000 +    15.000 =    515.000
+  //   Jago  = 1.500.000
+  //   GoPay = 2.000.000
+  //   Cash  =   300.000
 
+  // ══════════════════════════════════════════════════════════════
+  // SECTION B — OUTCOME (Happy Path)
+  // Urutan & nominal dijaga supaya TIDAK PERNAH minus terhadap
+  // saldo berjalan masing-masing akun (lihat catatan saldo di atas).
+  // ══════════════════════════════════════════════════════════════
+
+  // ── Cash: start 300.000 ──
+  { pesan: "Makan siang 25000 pake cash",                     expect: "Tercatat ✅", label: "B1 Outcome - Makan / Cash" },
+  // Cash sisa 275.000
+  { pesan: "Beli obat apotek 75000 cash",                     expect: "Tercatat ✅", label: "B6 Outcome - Kesehatan / Cash" },
+  // Cash sisa 200.000
+  { pesan: "Parkir 2000 cash",                                expect: "Tercatat ✅", label: "B12 Outcome - nominal sangat kecil / Cash" },
+  // Cash sisa 198.000
+  { pesan: "Dinner sama keluarga 150rb cash",                 expect: "Tercatat ✅", label: "B11 Outcome - mixed EN-ID / Cash" },
+  // Cash sisa 48.000
+
+  // ── GoPay: start 2.000.000 ──
+  { pesan: "Beli bensin 50rb gopay",                          expect: "Tercatat ✅", label: "B2 Outcome - Transport / GoPay shorthand" },
+  // GoPay sisa 1.950.000
+  { pesan: "Nonton bioskop 100k dana",                        expect: "Tercatat ✅", label: "B5-revisi Outcome - Hiburan / Dana" },
+  // (catatan: case ini dikelompokkan ulang, lihat blok Dana)
+  { pesan: "Kopi kenangan 35rb gopay",                        expect: "Tercatat ✅", label: "B7 Outcome - brand name as item / GoPay" },
+  // GoPay sisa 1.915.000
+  { pesan: "Top up e-toll 200rb gopay",                       expect: "Tercatat ✅", label: "B8 Outcome - top up non e-wallet, rekening diganti ke GoPay" },
+  // GoPay sisa 1.715.000
+
+  // ── BCA: start 11.000.000 ──
+  { pesan: "Belanja bulanan Indomaret 350000 BCA",            expect: "Tercatat ✅", label: "B3 Outcome - Belanja / BCA" },
+  // BCA sisa 10.650.000
+  { pesan: "Bayar listrik PLN 200.000 BCA",                   expect: "Tercatat ✅", label: "B4 Outcome - Tagihan / nominal titik" },
+  // BCA sisa 10.450.000
+  { pesan: "Cicilan motor 850.000 BCA",                       expect: "Tercatat ✅", label: "B9 Outcome - cicilan / nominal titik" },
+  // BCA sisa 9.600.000
+  { pesan: "Langganan Netflix 65000 BCA",                     expect: "Tercatat ✅", label: "B10 Outcome - subscription / brand" },
+  // BCA sisa 9.535.000
+  { pesan: "Beli laptop 9jt BCA",                             expect: "Tercatat ✅", label: "B13 Outcome - nominal besar" },
+  // BCA sisa 535.000
+  { pesan: "Bayar kontrakan 500.000 BCA",                     expect: "Tercatat ✅", label: "B14 Outcome - nominal kontrakan" },
+  // BCA sisa 35.000
+
+  // Saldo akhir Section B:
+  //   BCA   =    35.000
+  //   Dana  =   415.000
+  //   Jago  = 1.500.000  (belum dipakai di Section B)
+  //   GoPay = 1.715.000
+  //   Cash  =    48.000
+
+  // ══════════════════════════════════════════════════════════════
+  // SECTION C — TRANSFER
+  // Nominal dijaga agar rekening sumber transfer punya saldo cukup
+  // pada urutan eksekusi ini.
+  // ══════════════════════════════════════════════════════════════
+
+  // GoPay (1.715.000) → cukup untuk transfer kecil ke Dana
+  { pesan: "Send 300000 gopay ke Dana",                       expect: "Transfer ✅", label: "C4 Transfer - kata send EN" },
+  // GoPay sisa 1.415.000 | Dana sisa 715.000
+
+  // Jago (1.500.000, belum tersentuh) → cukup untuk transfer ke BCA
+  { pesan: "Pindahin 1jt dari Jago ke BCA",                   expect: "Transfer ✅", label: "C2 Transfer - kata pindahin" },
+  // Jago sisa 500.000 | BCA sisa 1.035.000
+
+  // BCA (1.035.000 setelah transfer masuk) → cukup untuk transfer ke GoPay
+  { pesan: "Transfer 500rb dari BCA ke Gopay",                expect: "Transfer ✅", label: "C1 Transfer - format standar" },
+  // BCA sisa 535.000 | GoPay sisa 1.915.000
+
+  // BCA (535.000) → cukup untuk top up kecil ke GoPay
+  { pesan: "Top up GoPay 200rb dari BCA",                     expect: "Transfer ✅", label: "C3 Transfer - top up e-wallet" },
+  // BCA sisa 335.000 | GoPay sisa 2.115.000
+
+   { pesan: "Send 300000 BCA ke Dana",                        expect: "Transfer ✅", label: "C4 Transfer - kata send EN" },
+
+  // Saldo akhir Section C:
+  //   BCA   =   335.000
+  //   Dana  =   715.000
+  //   Jago  =   500.000
+  //   GoPay = 2.115.000
+  //   Cash  =    48.000
+
+  
   // ══ SECTION D — CHECK_BALANCE SPESIFIK ════════════════════════
   { pesan: "saldo BCA",                                      expect: "💰 Saldo", label: "D1 Balance - keyword saldo + nama" },
   { pesan: "cek saldo gopay dong",                           expect: "💰 Saldo", label: "D2 Balance - cek + nama informal" },

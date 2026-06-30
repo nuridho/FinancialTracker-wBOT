@@ -4,7 +4,7 @@ const axios = require("axios");
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const USER_ID      = process.argv[2] || "dc09a82c-1701-4c35-9799-8da5ff555dcc";
+const USER_ID      = process.argv[2] || "3fc84f39-b8c4-4c58-aefa-c9353fdf6cc8";
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error("❌ SUPABASE_URL / SUPABASE_KEY tidak ditemukan di .env");
