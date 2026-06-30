@@ -105,11 +105,11 @@ Core features required before the first public release.
 | AI Fallback Chain                        | ✅ Done    |
 | Supabase Integration                     | ✅ Done    |
 | Multi-user Database Schema               | ✅ Done    |
-| Email Verification                       | ⏳ Planned |
-| Authentication Middleware                | ⏳ Planned |
-| WhatsApp Session Binding                 | ⏳ Planned |
-| Verification Code Management             | ⏳ Planned |
-| Rate Limiting                            | ⏳ Planned |
+| Email Verification                       | ✅ Done |
+| Authentication Middleware                | ✅ Done |
+| WhatsApp Session Binding                 | ✅ Done |
+| Verification Code Management             | ✅ Done|
+| Rate Limiting                            | ✅ Done |
 | Undo Last Transaction                    | ⏳ Planned |
 | Delete Transaction by ID                 | ⏳ Planned |
 | Balance Rebuild / Sync                   | ⏳ Planned |
