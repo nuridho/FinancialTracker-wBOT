@@ -4,17 +4,17 @@ Ranking List TO-DO
 /*
 1.1 [DATABASE] - Design SQL Database Schema -> DONE.
 1.2 [DATABASE] - Migrate Data Layer to PostgreSQL Supabase -> DONE 
-1. [USER VERIFICATION] -> Fondasi keamanan utama sebelum bot digunakan secara publik.
-2. [EMAIL SERVICE] -> Dibutuhkan untuk mengirim verification code kepada user.
-3. [AUTH MIDDLEWARE] -> Memastikan seluruh fitur hanya dapat diakses oleh user terverifikasi.
-4. [VERIFICATION CODE] -> Core authentication flow tidak dapat berjalan tanpa validasi kode.
-5. [SESSION MANAGEMENT] -> Menghubungkan nomor WhatsApp dengan identitas user yang telah diverifikasi.
-6. [RATE LIMITING] -> Mencegah spam email dan brute-force verification code.
-7. [TRANSACTION] - Hapus Transaksi Terakhir -> Saat ini masih memiliki risiko ketidaksinkronan saldo rekening.
-8. [TRANSACTION] - Hapus Transaksi Tertentu -> Mempermudah koreksi transaksi tanpa mengganggu histori lainnya.
-9. [TRANSACTION] - Rebuild / Sync Saldo Rekening -> Menjadi recovery mechanism ketika saldo dan transaksi tidak sinkron.
-10. [ACCOUNT MANAGEMENT] - Switch Uang Antar Rekening -> Fitur finansial penting yang mempengaruhi saldo dan histori transaksi.
-11. [BUDGETING] -> Memberikan value langsung kepada user untuk mengontrol pengeluaran.
+1. [USER VERIFICATION] -> Fondasi keamanan utama sebelum bot digunakan secara publik. -> TO-BE TESTING
+2. [EMAIL SERVICE] -> Dibutuhkan untuk mengirim verification code kepada user. -> TO-BE TESTING
+3. [AUTH MIDDLEWARE] -> Memastikan seluruh fitur hanya dapat diakses oleh user terverifikasi. -> TO-BE TESTING
+4. [VERIFICATION CODE] -> Core authentication flow tidak dapat berjalan tanpa validasi kode. -> TO-BE TESTING
+5. [SESSION MANAGEMENT] -> Menghubungkan nomor WhatsApp dengan identitas user yang telah diverifikasi. -> TO-BE TESTING
+6. [RATE LIMITING] -> Mencegah spam email dan brute-force verification code. -> TO-BE TESTING
+7. [TRANSACTION] - Hapus Transaksi Terakhir -> Saat ini masih memiliki risiko ketidaksinkronan saldo rekening. -> DONE
+8. [TRANSACTION] - Hapus Transaksi Tertentu -> Mempermudah koreksi transaksi tanpa mengganggu histori lainnya. -> DONE
+9. [TRANSACTION] - Rebuild / Sync Saldo Rekening -> Menjadi recovery mechanism ketika saldo dan transaksi tidak sinkron. -> TO-BE TESTING
+10. [ACCOUNT MANAGEMENT] - Switch Uang Antar Rekening -> Fitur finansial penting yang mempengaruhi saldo dan histori transaksi. -> TO-BE TESTING
+11. [BUDGETING] -> Memberikan value langsung kepada user untuk mengontrol pengeluaran. -> TO-BE TESTING
 12. [ANALYTICS] - Top Spending Category -> Insight sederhana dengan effort implementasi yang rendah.
 13. [REPORTING] - Rekap Mingguan -> Memudahkan monitoring kondisi keuangan mingguan.
 14. [REPORTING] - AI Insight Rekap Bulanan -> Menjadi fitur pembeda utama dibanding finance tracker biasa.
@@ -24,9 +24,9 @@ Ranking List TO-DO
 18. [AI OPTIMIZATION] - Prompt Compression -> Mengurangi penggunaan context window secara signifikan.
 19. [AI OPTIMIZATION] - Dynamic Context Injection -> Hanya mengirim informasi yang relevan ke model.
 20. [AI OPTIMIZATION] - Multi Model Routing -> Mengoptimalkan biaya inference berdasarkan kompleksitas request.
-21. [AI OPTIMIZATION] - AI Insight Cache -> Menghindari request AI yang berulang.
+21. [AI OPTIMIZATION] - AI Insight Cache -> Menghindari request AI yang berulang. -> TO-BE TESTING
 22. [Improvement Input] -> Meningkatkan user experience dengan multi transaksi dalam satu chat.
-23. [LIMIT INPUT] -> Fondasi monetisasi untuk versi freemium dan premium.
+23. [LIMIT INPUT] -> Fondasi monetisasi untuk versi freemium dan premium. -> DONE, default 200
 24. [TESTING] - Comprehensive Unit Testing -> Menjamin logic bisnis tetap stabil ketika fitur bertambah.
 25. [TESTING] - Integration Testing -> Memastikan integrasi AI, Spreadsheet, dan WhatsApp berjalan baik.
 26. [TESTING] - API Endpoint Testing -> Mengurangi risiko regression pada endpoint internal.

@@ -55,4 +55,20 @@ async function getAllSaldo(userId) {
   return output;
 }
 
-module.exports = { updateSaldo, getSaldo, getAllSaldo };
+/**
+ * Check if an account exists for a user (used to distinguish SWITCH vs OUTCOME).
+ */
+async function accountExists(userId, name) {
+  const rows = await sbGet("accounts", `user_id=eq.${userId}&name=eq.${encodeURIComponent(name)}&select=id`);
+  return rows && rows.length > 0;
+}
+
+/**
+ * Rebuild all account balances from transaction history.
+ * Requires resync_balances() SQL function in Supabase.
+ */
+async function resyncBalances(userId) {
+  await sbRpc("resync_balances", { p_user_id: userId });
+}
+
+module.exports = { updateSaldo, getSaldo, getAllSaldo, accountExists, resyncBalances };

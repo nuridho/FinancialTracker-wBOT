@@ -6,6 +6,7 @@
     "test":       "node runner.js all",
     "test:part1": "node runner.js part1",
     "test:part2": "node runner.js part2",
+    "test:part3": "node runner.js part3",
     "test:quick": "node runner.js quick",
     "reset":      "node reset-user.js"
   },

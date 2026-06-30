@@ -35,6 +35,28 @@ async function sbPost(table, payload) {
 }
 
 /**
+ * Upsert a row (insert or update on conflict via primary key).
+ * @param {string} table
+ * @param {object} payload
+ */
+async function sbUpsert(table, payload) {
+  const url = `${config.supabase.url}/rest/v1/${table}`;
+  await axios.post(url, payload, {
+    headers: { ...headers(), Prefer: "resolution=merge-duplicates,return=minimal" },
+  });
+}
+
+/**
+ * DELETE rows from a Supabase table.
+ * @param {string} table
+ * @param {string} queryString - PostgREST filter, e.g. "user_id=eq.xxx&trx_id=eq.yyy"
+ */
+async function sbDelete(table, queryString) {
+  const url = `${config.supabase.url}/rest/v1/${table}?${queryString}`;
+  await axios.delete(url, { headers: { ...headers(), Prefer: "return=minimal" } });
+}
+
+/**
  * Call a Supabase RPC function.
  * @param {string} fnName
  * @param {object} params
@@ -51,4 +73,4 @@ async function sbRpc(fnName, params) {
   }
 }
 
-module.exports = { sbGet, sbPost, sbRpc };
+module.exports = { sbGet, sbPost, sbUpsert, sbDelete, sbRpc };

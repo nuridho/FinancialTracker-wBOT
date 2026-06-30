@@ -16,6 +16,7 @@ create table users (
   name         text        not null,
   email        citext      not null unique,
   is_verified  boolean     not null default false,
+  input_limit  integer     not null default 200,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
@@ -45,13 +46,20 @@ create table transactions (
   id           uuid          primary key default gen_random_uuid(),
   trx_id       text          not null,
   user_id      uuid          not null references users(id) on delete cascade,
-  type         text          not null check (type in ('INCOME', 'OUTCOME')),
+  type         text          not null check (type in ('INCOME', 'OUTCOME', 'SWITCH')),
   category     text          not null default 'Lainnya',
   amount       numeric(15,2) not null check (amount > 0),
   account_name text          not null,
   message      text,
   created_at   timestamptz   not null default now(),
   unique (user_id, trx_id)
+);
+
+create table budgets (
+  user_id  uuid          not null references users(id) on delete cascade,
+  category text          not null,
+  amount   numeric(15,2) not null check (amount > 0),
+  primary key (user_id, category)
 );
 
 -- ================================================================
@@ -65,6 +73,7 @@ create index idx_accounts_user_id      on accounts (user_id);
 create index idx_trx_user_created      on transactions (user_id, created_at desc);
 create index idx_trx_user_type         on transactions (user_id, type);
 create index idx_trx_user_cat          on transactions (user_id, category);
+create index idx_budgets_user_id       on budgets (user_id);
 
 -- ================================================================
 -- TRIGGERS
@@ -199,6 +208,30 @@ begin
   end if;
 
   return query select coalesce(v_valid, false);
+end;
+$$;
+
+create or replace function resync_balances(p_user_id uuid)
+returns void
+language plpgsql as $$
+begin
+  update accounts a
+  set balance    = coalesce((
+        select sum(
+          case
+            when t.type = 'INCOME'                            then  t.amount
+            when t.type = 'OUTCOME'                           then -t.amount
+            -- ponytail: SWITCH uses -TO suffix: -TO leg = money in, non-TO = money out
+            when t.type = 'SWITCH' and t.trx_id like '%-TO'  then  t.amount
+            when t.type = 'SWITCH'                            then -t.amount
+            else 0
+          end
+        )
+        from transactions t
+        where t.user_id = p_user_id and t.account_name = a.name
+      ), 0),
+      updated_at = now()
+  where a.user_id = p_user_id;
 end;
 $$;
 

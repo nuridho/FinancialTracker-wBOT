@@ -6,6 +6,12 @@ const { sbRpc } = require("../utils/supabase");
  * @returns {Promise<{verified: boolean, userId?: string, message?: string}>}
  */
 async function checkAuth(waNumber) {
+  // ponytail: test bypass — set TEST_WA_NUMBER + TEST_USER_ID in .env to skip DB lookup
+  if (process.env.TEST_WA_NUMBER && waNumber === process.env.TEST_WA_NUMBER) {
+    if (!process.env.TEST_USER_ID) throw new Error("TEST_USER_ID wajib diset jika TEST_WA_NUMBER dipakai");
+    return { verified: true, userId: process.env.TEST_USER_ID };
+  }
+
   const result = await sbRpc("get_user_by_wa", { p_wa_number: waNumber });
   
   if (!result || result.length === 0) {

@@ -1,4 +1,4 @@
-const { sbRpc } = require("../../utils/supabase");
+const { sbGet, sbRpc } = require("../../utils/supabase");
 
 // ================================
 // AUTH — USER IDENTITY
@@ -28,4 +28,9 @@ async function getCurrentUserId(waNumber) {
   // return rows[0].user_id;
 }
 
-module.exports = { getCurrentUserId };
+async function getInputLimit(userId) {
+  const rows = await sbGet("users", `id=eq.${userId}&select=input_limit`);
+  return rows?.[0]?.input_limit ?? 200;
+}
+
+module.exports = { getCurrentUserId, getInputLimit };

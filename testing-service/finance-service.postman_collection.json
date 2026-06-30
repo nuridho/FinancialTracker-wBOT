@@ -23,6 +23,11 @@
       "key": "code",
       "value": "123456",
       "type": "string"
+    },
+    {
+      "key": "trx_id",
+      "value": "REPLACE_WITH_REAL_TRX_ID",
+      "type": "string"
     }
   ],
   "item": [
@@ -196,6 +201,234 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"rekap bulan ini\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Switch / Transfer",
+      "item": [
+        {
+          "name": "Switch Inter-Account (BCA → GoPay)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"Transfer 500rb dari BCA ke GoPay\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Switch - Pindahin",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"Pindahin 200rb dari Jago ke BCA\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Transfer Keluar (ke akun eksternal)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"Transfer 100rb dari BCA ke Andi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Undo & Delete",
+      "item": [
+        {
+          "name": "Undo Last Transaction",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"undo\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Undo - Alias Hapus Terakhir",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"hapus transaksi terakhir\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Delete by TRX ID",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"hapus TRX-{{trx_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Delete by TRX ID - Not Found",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"hapus TRX-000000000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resync",
+      "item": [
+        {
+          "name": "Resync Balances",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"resync\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Resync - Sync Saldo",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"sync saldo\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Resync - Rebuild Saldo",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"rebuild saldo\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Budget",
+      "item": [
+        {
+          "name": "Set Budget",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"set budget Makan 500000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Check Budget Progress",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"budget Makan\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Outcome with Budget Progress",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"Makan siang 50rb gopay\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/process",

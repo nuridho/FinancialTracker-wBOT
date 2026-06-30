@@ -4,7 +4,7 @@ const axios = require("axios");
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const USER_ID      = process.argv[2] || "3fc84f39-b8c4-4c58-aefa-c9353fdf6cc8";
+const USER_ID      = process.argv[2] || "9628ab95-d877-42ed-886a-14c484af526a";
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error("❌ SUPABASE_URL / SUPABASE_KEY tidak ditemukan di .env");
@@ -58,9 +58,11 @@ async function reset() {
     accBefore.forEach(a => console.log(`    ▪ ${a.name}: Rp ${Number(a.balance).toLocaleString("id-ID")}`));
   }
 
-  // 2. Hapus semua transaksi
+  // 2. Hapus semua transaksi + budget
   const deletedTx = await supabaseDelete("transactions", `user_id=eq.${USER_ID}`);
   console.log(`\n🗑️  Hapus transactions : ${deletedTx.length} baris dihapus`);
+  const deletedBudget = await supabaseDelete("budgets", `user_id=eq.${USER_ID}`);
+  console.log(`🗑️  Hapus budgets      : ${deletedBudget.length} baris dihapus`);
 
   // 3. Zero out semua saldo akun (set balance = 0, tidak hapus akunnya)
   const zeroed = await supabasePatch(

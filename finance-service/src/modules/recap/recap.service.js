@@ -1,5 +1,6 @@
 const { sbGet } = require("../../utils/supabase");
 const { formatRupiah, formatTanggalIndo } = require("../../utils/helpers");
+const { generateInsight } = require("../ai/ai.service");
 
 /**
  * Generate a spending recap for a given date range.
@@ -50,6 +51,11 @@ async function generateRekap(userId, start, end) {
         output += `▪️ ${kat}: Rp ${formatRupiah(perKategori[kat])}\n`;
       });
   }
+
+  // ponytail: insight adds ~5-30s on first call, instant on cache hit
+  const cacheKey = `${userId}:${start.toISOString()}:${end.toISOString()}`;
+  const insight = await generateInsight(cacheKey, output).catch(() => null);
+  if (insight) output += `━━━━━━━━━━━━━━\n💡 *Insight:* ${insight}`;
 
   return output;
 }

@@ -7,11 +7,18 @@ const { classifyMessage } = require("../modules/ai/ai.service");
 const {
   insertTransaksi,
   normalizeRekening,
+  getLastTransaction,
+  deleteTransactionWithRollback,
+  getTransactionCount,
 } = require("../modules/transaction/transaction.service");
+const { getInputLimit } = require("../modules/user/user.service");
+const { setBudget, getBudgetProgress } = require("../modules/budget/budget.service");
 const {
   updateSaldo,
   getSaldo,
   getAllSaldo,
+  accountExists,
+  resyncBalances,
 } = require("../modules/account/account.service");
 const { generateRekap } = require("../modules/recap/recap.service");
 const {
@@ -114,16 +121,80 @@ router.post("/process", async (req, res) => {
     }
 
     // ================================
-    // FINANCIAL LOGIC — AI classification
+    // RULE-BASED — undo / delete / resync (no AI tokens)
     // ================================
     const userId = auth.userId; // ponytail: from checkAuth instead of getCurrentUserId
-    let ai = await classifyMessage(pesan.trim());
+    const pesanTrim = pesan.trim();
+
+    // Undo last transaction
+    if (/^undo$|^hapus\s+transaksi\s+terakhir$/i.test(pesanTrim)) {
+      const last = await getLastTransaction(userId);
+      if (!last) return res.json({ reply: "Tidak ada transaksi untuk dihapus." });
+      const deleted = await deleteTransactionWithRollback(userId, last.trx_id);
+      return res.json({
+        reply:
+          "🗑️ *Undo Berhasil*\n" +
+          "━━━━━━━━━━━━━━\n" +
+          `ℹ️ *ID:* ${deleted.trx_id}\n` +
+          `📂 *Kategori:* ${deleted.category}\n` +
+          `💰 *Jumlah:* Rp ${formatRupiah(deleted.amount)}\n` +
+          "━━━━━━━━━━━━━━\n" +
+          "Transaksi dihapus ✅",
+      });
+    }
+
+    // Delete by TRX ID
+    const deleteMatch = pesanTrim.match(/^hapus\s+(?:transaksi\s+)?(TRX-[A-F0-9]+(?:-TO)?)$/i);
+    if (deleteMatch) {
+      const deleted = await deleteTransactionWithRollback(userId, deleteMatch[1].toUpperCase());
+      if (!deleted) return res.json({ reply: `❌ Transaksi ${deleteMatch[1].toUpperCase()} tidak ditemukan.` });
+      return res.json({
+        reply:
+          "🗑️ *Transaksi Dihapus*\n" +
+          "━━━━━━━━━━━━━━\n" +
+          `ℹ️ *ID:* ${deleted.trx_id}\n` +
+          `📂 *Kategori:* ${deleted.category}\n` +
+          `💰 *Jumlah:* Rp ${formatRupiah(deleted.amount)}\n` +
+          "━━━━━━━━━━━━━━\n" +
+          "Transaksi dihapus ✅",
+      });
+    }
+
+    // Resync balances
+    if (/^resync$|^sync\s+saldo$|^rebuild\s+saldo$/i.test(pesanTrim)) {
+      await resyncBalances(userId);
+      return res.json({ reply: "🔄 *Saldo Disinkronkan*\nSemua saldo rekening telah dihitung ulang dari riwayat transaksi. ✅" });
+    }
+
+    // Set budget: "set budget makan 500000"
+    const setBudgetMatch = pesanTrim.match(/^set\s+budget\s+(.+?)\s+(\d+)$/i);
+    if (setBudgetMatch) {
+      const cat = setBudgetMatch[1].trim();
+      const amt = parseInt(setBudgetMatch[2], 10);
+      await setBudget(userId, cat, amt);
+      return res.json({ reply: `✅ Budget *${cat}* diset ke Rp ${formatRupiah(amt)} per periode.` });
+    }
+
+    // Check budget: "budget makan"
+    if (/^budget\s+\S/i.test(pesanTrim)) {
+      const cat = pesanTrim.replace(/^budget\s+/i, "").trim();
+      const periode = getPeriodeGajian(new Date());
+      const progress = await getBudgetProgress(userId, cat, periode.start, periode.end);
+      return res.json({
+        reply: progress || `Budget *${cat}* belum diset.\n\nKetik: *set budget ${cat} [nominal]*`,
+      });
+    }
+
+    // ================================
+    // FINANCIAL LOGIC — AI classification
+    // ================================
+    let ai = await classifyMessage(pesanTrim);
 
     // Intent validation — downgrade to GENERAL if invalid
     const validationError = validateIntent(ai);
     if (validationError) {
       console.warn(
-        `Validation failed [${ai.intent}]: ${validationError} | Input: ${pesan}`
+        `Validation failed [${ai.intent}]: ${validationError} | Input: ${pesanTrim}`
       );
       ai.intent = "GENERAL";
     }
@@ -134,7 +205,7 @@ router.post("/process", async (req, res) => {
       (ai.intent === "ADD_TRANSACTION" || ai.intent === "TRANSFER") &&
       confidence < config.confidenceThreshold
     ) {
-      return res.json({ reply: buildKonfirmasiMsg(ai, pesan) });
+      return res.json({ reply: buildKonfirmasiMsg(ai, pesanTrim) });
     }
 
     switch (ai.intent) {
@@ -161,24 +232,47 @@ router.post("/process", async (req, res) => {
         return res.json({ reply });
       }
 
-      // ── TRANSFER ────────────────────────────────
+      // ── TRANSFER / SWITCH ────────────────────────
       case "TRANSFER": {
         const rekAsal = normalizeRekening(ai.rek_from || "");
         const rekTujuan = normalizeRekening(ai.rek_to || "");
         const jumlah = ai.amt;
-        const trxIdTo = trxId + "-TO";
 
-        await insertTransaksi(userId, trxId, "OUTCOME", "Transfer", jumlah, rekAsal, pesan);
-        await insertTransaksi(userId, trxIdTo, "INCOME", "Transfer", jumlah, rekTujuan, pesan);
+        // If destination is one of the user's own accounts → SWITCH (not counted in recap)
+        if (await accountExists(userId, rekTujuan)) {
+          const trxIdTo = trxId + "-TO";
+          await insertTransaksi(userId, trxId,   "SWITCH", "Switch", jumlah, rekAsal,   pesanTrim);
+          await insertTransaksi(userId, trxIdTo, "SWITCH", "Switch", jumlah, rekTujuan, pesanTrim);
+          await updateSaldo(userId, "OUTCOME", jumlah, rekAsal);
+          await updateSaldo(userId, "INCOME",  jumlah, rekTujuan);
+
+          return res.json({
+            reply:
+              "🔄 *Switch Rekening ✅*\n" +
+              "━━━━━━━━━━━━━━\n" +
+              `ℹ️ *ID:* ${trxId}\n` +
+              `↔️ *Tipe:* SWITCH\n` +
+              `💰 *Jumlah:* Rp ${formatRupiah(jumlah)}\n` +
+              "━━━━━━━━━━━━━━\n" +
+              `💳 *Rekening Asal:* ${rekAsal}\n` +
+              `🏦 *Rekening Tujuan:* ${rekTujuan}\n` +
+              "━━━━━━━━━━━━━━\n" +
+              "Tercatat ✅\n" +
+              "ℹ️ Dicatat sebagai SWITCH (tidak dihitung di rekap).\n" +
+              `Jika ini pengeluaran ke orang lain, ketik *undo* atau *hapus ${trxId}*`,
+          });
+        }
+
+        // Destination unknown → treat as OUTCOME from source account
+        await insertTransaksi(userId, trxId, "OUTCOME", "Transfer", jumlah, rekAsal, pesanTrim);
         await updateSaldo(userId, "OUTCOME", jumlah, rekAsal);
-        await updateSaldo(userId, "INCOME", jumlah, rekTujuan);
 
         return res.json({
           reply:
-            "🔄 *Transfer ✅*\n" +
+            "💸 *Transfer Keluar ✅*\n" +
             "━━━━━━━━━━━━━━\n" +
             `ℹ️ *ID:* ${trxId}\n` +
-            `💸 *Dari:* ${rekAsal}\n` +
+            `💳 *Dari:* ${rekAsal}\n` +
             `🏦 *Ke:* ${rekTujuan}\n` +
             `💰 *Jumlah:* Rp ${formatRupiah(jumlah)}\n` +
             "━━━━━━━━━━━━━━\n" +
@@ -188,23 +282,41 @@ router.post("/process", async (req, res) => {
 
       // ── CATAT TRANSAKSI ─────────────────────────
       case "ADD_TRANSACTION": {
-        const rekening = normalizeRekening(ai.rek || "Cash");
+        const periode = getPeriodeGajian(new Date());
 
-        await insertTransaksi(userId, trxId, ai.type, ai.cat, ai.amt, rekening, pesan);
+        // Input limit check (parallel queries)
+        const [txCount, inputLimit] = await Promise.all([
+          getTransactionCount(userId, periode.start, periode.end),
+          getInputLimit(userId),
+        ]);
+        if (txCount >= inputLimit) {
+          return res.json({
+            reply: `⚠️ Batas input periode ini (${inputLimit} transaksi) telah tercapai.\n\nUpgrade ke premium untuk input tanpa batas.`,
+          });
+        }
+
+        const rekening = normalizeRekening(ai.rek || "Cash");
+        await insertTransaksi(userId, trxId, ai.type, ai.cat, ai.amt, rekening, pesanTrim);
         await updateSaldo(userId, ai.type, ai.amt, rekening);
 
-        return res.json({
-          reply:
-            "📝 *Catatan Keuangan*\n" +
-            "━━━━━━━━━━━━━━\n" +
-            `ℹ️ *ID:* ${trxId}\n` +
-            `↔️ *Tipe:* ${ai.type}\n` +
-            `📂 *Kategori:* ${ai.cat}\n` +
-            `💰 *Jumlah:* Rp ${formatRupiah(ai.amt)}\n` +
-            `💳 *Rekening:* ${rekening}\n` +
-            "━━━━━━━━━━━━━━\n" +
-            "Tercatat ✅",
-        });
+        let reply =
+          "📝 *Catatan Keuangan*\n" +
+          "━━━━━━━━━━━━━━\n" +
+          `ℹ️ *ID:* ${trxId}\n` +
+          `↔️ *Tipe:* ${ai.type}\n` +
+          `📂 *Kategori:* ${ai.cat}\n` +
+          `💰 *Jumlah:* Rp ${formatRupiah(ai.amt)}\n` +
+          `💳 *Rekening:* ${rekening}\n` +
+          "━━━━━━━━━━━━━━\n" +
+          "Tercatat ✅";
+
+        // Append budget progress for OUTCOME if budget is set
+        if (ai.type === "OUTCOME") {
+          const budgetInfo = await getBudgetProgress(userId, ai.cat, periode.start, periode.end);
+          if (budgetInfo) reply += `\n${budgetInfo}`;
+        }
+
+        return res.json({ reply });
       }
 
       // ── GENERAL / FALLBACK ──────────────────────
