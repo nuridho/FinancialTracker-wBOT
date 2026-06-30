@@ -1,0 +1,275 @@
+{
+  "info": {
+    "name": "Finance Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "wa_number",
+      "value": "628123456789",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "user@example.com",
+      "type": "string"
+    },
+    {
+      "key": "code",
+      "value": "123456",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"waNumber\": \"{{wa_number}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/register",
+              "host": ["{{base_url}}"],
+              "path": ["register"]
+            }
+          }
+        },
+        {
+          "name": "Verify",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"waNumber\": \"{{wa_number}}\",\n  \"code\": \"{{code}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/verify",
+              "host": ["{{base_url}}"],
+              "path": ["verify"]
+            }
+          }
+        },
+        {
+          "name": "Process - Send Email",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"{{email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Process - Verify Code",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"{{email}} verify-{{code}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Add Income",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"Gajian 7.5jt ke BCA\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Add Outcome",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"Makan siang 25rb gopay\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Transfer",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"Transfer 500rb dari BCA ke Dana\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Balance",
+      "item": [
+        {
+          "name": "Check Balance (Specific)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"saldo BCA\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Check Balance (All)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"saldo semua\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recap",
+      "item": [
+        {
+          "name": "Monthly Recap",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"rekap bulan ini\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Edge Cases",
+      "item": [
+        {
+          "name": "Unverified User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"628999999999\",\n  \"body\": \"makan 50rb\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Low Confidence",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"makan sushi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        },
+        {
+          "name": "Non-Financial",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{wa_number}}\",\n  \"body\": \"Hai, apa kabar?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    }
+  ]
+}

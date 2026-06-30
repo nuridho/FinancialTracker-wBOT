@@ -41,9 +41,14 @@ async function sbPost(table, payload) {
  */
 async function sbRpc(fnName, params) {
   const url = `${config.supabase.url}/rest/v1/rpc/${fnName}`;
-
-  const res = await axios.post(url, params, { headers: headers() });
-  return res.data;
+  
+  try {
+    const res = await axios.post(url, params, { headers: headers() });
+    return res.data;
+  } catch (err) {
+    console.error(`[sbRpc] ${fnName} failed:`, err.response?.data || err.message);
+    throw err;
+  }
 }
 
 module.exports = { sbGet, sbPost, sbRpc };

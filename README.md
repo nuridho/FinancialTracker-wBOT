@@ -23,11 +23,17 @@ User WA ──► messaging-service ──HTTP──► finance-service ──�
 src/
 ├── config/
 │   └── index.js              # semua env var terpusat
+├── middleware/
+│   └── auth.middleware.js    -> check verification status
 ├── modules/
 │   ├── ai/
 │   │   └── ai.service.js     # OpenRouter classifier + model fallback
 │   ├── account/
 │   │   └── account.service.js  # getSaldo, getAllSaldo, updateSaldo
+|   ├── auth/
+|   |   └── auth.service.js -> handle flow REQUEST_EMAIL → SEND_CODE → VERIFY
+|   ├── email/
+|   |   └── email.service.js -> kirim email via Resend
 │   ├── recap/
 │   │   └── recap.service.js  # generateRekap
 │   ├── transaction/
@@ -40,6 +46,11 @@ src/
 │   ├── helpers.js            # formatRupiah, formatTanggalIndo, dll.
 │   └── supabase.js           # sbGet, sbPost, sbRpc
 └── index.js
+
+Supabase/
+├── scheme.sql/ -> struktur tabel
+└── setup.md -> how to initiate supabase
+
 ```
 
 ## API finance-service

@@ -19,6 +19,11 @@ const {
   formatRupiah,
   getPeriodeGajian,
 } = require("../utils/helpers");
+const { checkAuth } = require("../middleware/auth.middleware");
+const {
+  requestEmailVerification,
+  verifyAuthCode,
+} = require("../modules/auth/auth.service");
 
 // ================================
 // INTENT VALIDATION
@@ -80,7 +85,38 @@ router.post("/process", async (req, res) => {
   const trxId = generateTrxId();
 
   try {
-    const userId = await getCurrentUserId(waNumber || "unknown");
+    // ================================
+    // AUTH FLOW — Email verification
+    // ================================
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const verifyRegex = /^([^\s@]+@[^\s@]+\.[^\s@]+)\s+verify-(\d{6})$/;
+
+    // Step 1: User kirim email untuk request verification code
+    if (emailRegex.test(pesan.trim()) && !verifyRegex.test(pesan.trim())) {
+      const email = pesan.trim().toLowerCase();
+      const result = await requestEmailVerification(waNumber, email);
+      return res.json({ reply: result.message });
+    }
+
+    // Step 2: User kirim email + verification code
+    const verifyMatch = pesan.trim().match(verifyRegex);
+    if (verifyMatch) {
+      const email = verifyMatch[1].toLowerCase();
+      const code = verifyMatch[2];
+      const result = await verifyAuthCode(waNumber, email, code);
+      return res.json({ reply: result.message });
+    }
+
+    // Step 3: Check if user is verified
+    const auth = await checkAuth(waNumber);
+    if (!auth.verified) {
+      return res.json({ reply: auth.message });
+    }
+
+    // ================================
+    // FINANCIAL LOGIC — AI classification
+    // ================================
+    const userId = auth.userId; // ponytail: from checkAuth instead of getCurrentUserId
     let ai = await classifyMessage(pesan.trim());
 
     // Intent validation — downgrade to GENERAL if invalid
@@ -181,6 +217,38 @@ router.post("/process", async (req, res) => {
     return res
       .status(500)
       .json({ error: `Internal error: ${err.message}` });
+  }
+});
+
+// ================================
+// POST /register — explicit registration
+// ================================
+router.post("/register", async (req, res) => {
+  const { email, waNumber } = req.body;
+  if (!email || !waNumber) {
+    return res.status(400).json({ error: "email and waNumber required" });
+  }
+  try {
+    const result = await requestEmailVerification(waNumber, email.toLowerCase());
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ================================
+// POST /verify — explicit verification
+// ================================
+router.post("/verify", async (req, res) => {
+  const { email, waNumber, code } = req.body;
+  if (!email || !waNumber || !code) {
+    return res.status(400).json({ error: "email, waNumber, and code required" });
+  }
+  try {
+    const result = await verifyAuthCode(waNumber, email.toLowerCase(), code);
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 

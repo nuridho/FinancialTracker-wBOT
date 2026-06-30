@@ -1,22 +1,17 @@
 -- ================================================================
--- FINANCIAL TRACKER BOT — Database Schema
--- Supabase (PostgreSQL)
+-- FINANCIAL TRACKER — Full Schema (drop-safe)
+-- Run this in Supabase SQL Editor after dropping all tables
 -- ================================================================
 
+-- Extensions
+create extension if not exists pgcrypto;
+create extension if not exists citext;
 
 -- ================================================================
--- EXTENSION
+-- TABLES
 -- ================================================================
-create extension if not exists "pgcrypto";   -- gen_random_uuid()
-create extension if not exists "citext";     -- case-insensitive text (untuk email)
 
-
--- ================================================================
--- TABLE: users
--- Identitas utama. 1 user = 1 orang.
--- Nomor WA tidak disimpan di sini — ada di wa_sessions.
--- ================================================================
-create table if not exists users (
+create table users (
   id           uuid        primary key default gen_random_uuid(),
   name         text        not null,
   email        citext      not null unique,
@@ -24,6 +19,56 @@ create table if not exists users (
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+
+create table wa_sessions (
+  id           uuid        primary key default gen_random_uuid(),
+  user_id      uuid        not null references users(id) on delete cascade,
+  wa_number    text        not null unique,
+  is_active    boolean     not null default false,
+  auth_code    text,
+  auth_expires timestamptz,
+  last_seen    timestamptz,
+  created_at   timestamptz not null default now()
+);
+
+create table accounts (
+  id           uuid          primary key default gen_random_uuid(),
+  user_id      uuid          not null references users(id) on delete cascade,
+  name         text          not null,
+  balance      numeric(15,2) not null default 0,
+  created_at   timestamptz   not null default now(),
+  updated_at   timestamptz   not null default now(),
+  unique (user_id, name)
+);
+
+create table transactions (
+  id           uuid          primary key default gen_random_uuid(),
+  trx_id       text          not null,
+  user_id      uuid          not null references users(id) on delete cascade,
+  type         text          not null check (type in ('INCOME', 'OUTCOME')),
+  category     text          not null default 'Lainnya',
+  amount       numeric(15,2) not null check (amount > 0),
+  account_name text          not null,
+  message      text,
+  created_at   timestamptz   not null default now(),
+  unique (user_id, trx_id)
+);
+
+-- ================================================================
+-- INDEXES
+-- ================================================================
+
+create index idx_wa_sessions_user_id   on wa_sessions (user_id);
+create index idx_wa_sessions_wa_number on wa_sessions (wa_number);
+create index idx_wa_sessions_active    on wa_sessions (user_id) where is_active = true;
+create index idx_accounts_user_id      on accounts (user_id);
+create index idx_trx_user_created      on transactions (user_id, created_at desc);
+create index idx_trx_user_type         on transactions (user_id, type);
+create index idx_trx_user_cat          on transactions (user_id, category);
+
+-- ================================================================
+-- TRIGGERS
+-- ================================================================
 
 create or replace function set_updated_at()
 returns trigger language plpgsql as $$
@@ -37,79 +82,14 @@ create trigger trg_users_updated_at
   before update on users
   for each row execute function set_updated_at();
 
-
--- ================================================================
--- TABLE: wa_sessions
--- 1 user bisa punya beberapa nomor WA (HP hilang, HP backup).
--- Hanya 1 nomor aktif (is_active = true) dalam satu waktu.
--- ================================================================
-create table if not exists wa_sessions (
-  id           uuid        primary key default gen_random_uuid(),
-  user_id      uuid        not null references users(id) on delete cascade,
-  wa_number    text        not null unique,           -- format: 628xxxxxxxxxx
-  is_active    boolean     not null default true,
-  auth_code    text,                                  -- kode verifikasi 6 digit (sementara)
-  auth_expires timestamptz,                           -- expired dalam 10 menit
-  last_seen    timestamptz,
-  created_at   timestamptz not null default now()
-);
-
-create index if not exists idx_wa_sessions_user_id   on wa_sessions (user_id);
-create index if not exists idx_wa_sessions_wa_number on wa_sessions (wa_number);
-create index if not exists idx_wa_sessions_active    on wa_sessions (user_id) where is_active = true;
-
-
--- ================================================================
--- TABLE: accounts (rekening)
--- Scope per user. BCA-ku != BCA-mu.
--- ================================================================
-create table if not exists accounts (
-  id           uuid          primary key default gen_random_uuid(),
-  user_id      uuid          not null references users(id) on delete cascade,
-  name         text          not null,
-  balance      numeric(15,3) not null default 0,
-  created_at   timestamptz   not null default now(),
-  updated_at   timestamptz   not null default now(),
-
-  unique (user_id, name)
-);
-
-create index if not exists idx_accounts_user_id on accounts (user_id);
-
 create trigger trg_accounts_updated_at
   before update on accounts
   for each row execute function set_updated_at();
 
-
 -- ================================================================
--- TABLE: transactions
--- trx_id = business key (human-readable, unique per user).
--- id uuid = true PK untuk join & FK.
--- amount pakai numeric(15,2) — support bulat & desimal.
+-- FUNCTIONS — Financial
 -- ================================================================
-create table if not exists transactions (
-  id           uuid          primary key default gen_random_uuid(),
-  trx_id       text          not null,
-  user_id      uuid          not null references users(id) on delete cascade,
-  type         text          not null check (type in ('INCOME', 'OUTCOME')),
-  category     text          not null default 'Lainnya',
-  amount       numeric(15,2) not null check (amount > 0),
-  account_name text          not null,
-  message      text,
-  created_at   timestamptz   not null default now(),
 
-  unique (user_id, trx_id)
-);
-
-create index if not exists idx_transactions_user_created on transactions (user_id, created_at desc);
-create index if not exists idx_transactions_user_type    on transactions (user_id, type);
-create index if not exists idx_transactions_user_cat     on transactions (user_id, category);
-
-
--- ================================================================
--- FUNCTION: upsert_account_balance
--- Atomic upsert saldo. Dipanggil via RPC dari Apps Script.
--- ================================================================
 create or replace function upsert_account_balance(
   p_user_id  uuid,
   p_name     text,
@@ -126,16 +106,14 @@ begin
     set balance    = accounts.balance + p_delta,
         updated_at = now()
   returning balance into v_new_balance;
-
   return v_new_balance;
 end;
 $$;
 
+-- ================================================================
+-- FUNCTIONS — Auth
+-- ================================================================
 
--- ================================================================
--- FUNCTION: get_user_by_wa
--- Lookup user dari nomor WA. Dipanggil tiap request masuk.
--- ================================================================
 create or replace function get_user_by_wa(p_wa_number text)
 returns table (
   user_id     uuid,
@@ -155,13 +133,38 @@ language sql stable as $$
   limit 1;
 $$;
 
+create or replace function create_or_get_user_by_email(p_email citext)
+returns table (id uuid)
+language plpgsql as $$
+begin
+  insert into users (email, name, is_verified)
+  values (p_email, split_part(p_email, '@', 1), false)
+  on conflict (email) do nothing;
+  return query select users.id from users where email = p_email limit 1;
+end;
+$$;
 
--- ================================================================
--- FUNCTION: generate_auth_code
--- Buat kode 6 digit, valid 10 menit. Kirim via WA ke user.
--- ================================================================
+create or replace function upsert_wa_session(p_user_id uuid, p_wa_number text)
+returns void
+language plpgsql as $$
+begin
+  insert into wa_sessions (user_id, wa_number, is_active)
+  values (p_user_id, p_wa_number, false)
+  on conflict (wa_number) do update
+    set user_id = p_user_id;
+end;
+$$;
+
+create or replace function mark_user_verified(p_user_id uuid)
+returns void
+language plpgsql as $$
+begin
+  update users set is_verified = true where id = p_user_id;
+end;
+$$;
+
 create or replace function generate_auth_code(p_wa_number text)
-returns text
+returns table (code text)
 language plpgsql as $$
 declare
   v_code text;
@@ -171,17 +174,12 @@ begin
   set auth_code    = v_code,
       auth_expires = now() + interval '10 minutes'
   where wa_number  = p_wa_number;
-  return v_code;
+  return query select v_code;
 end;
 $$;
 
-
--- ================================================================
--- FUNCTION: verify_auth_code
--- Validasi kode. One-time use — dihapus setelah berhasil.
--- ================================================================
 create or replace function verify_auth_code(p_wa_number text, p_code text)
-returns boolean
+returns table (success boolean)
 language plpgsql as $$
 declare
   v_valid boolean;
@@ -200,15 +198,14 @@ begin
     where wa_number  = p_wa_number;
   end if;
 
-  return coalesce(v_valid, false);
+  return query select coalesce(v_valid, false);
 end;
 $$;
 
-
 -- ================================================================
 -- ROW LEVEL SECURITY
--- service_role key (Apps Script) bypass semua policy.
 -- ================================================================
+
 alter table users        enable row level security;
 alter table wa_sessions  enable row level security;
 alter table accounts     enable row level security;
@@ -219,8 +216,11 @@ create policy "service_role all wa_sessions"  on wa_sessions  for all using (tru
 create policy "service_role all accounts"     on accounts     for all using (true) with check (true);
 create policy "service_role all transactions" on transactions for all using (true) with check (true);
 
+-- ================================================================
+-- GRANTS
+-- ================================================================
 
--- ================================================================
--- VERIFIKASI
--- ================================================================
-select tablename from pg_tables where schemaname = 'public' order by tablename;
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+grant all on all functions in schema public to service_role;

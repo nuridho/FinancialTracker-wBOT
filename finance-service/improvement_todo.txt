@@ -3,8 +3,8 @@ Ranking List TO-DO
 ================================ */
 /*
 1.1 [DATABASE] - Design SQL Database Schema -> DONE.
-1.2 [DATABASE] - Migrate Data Layer to PostgreSQL Supabase -> Working progress 
-1.3. [USER VERIFICATION] -> Fondasi keamanan utama sebelum bot digunakan secara publik.
+1.2 [DATABASE] - Migrate Data Layer to PostgreSQL Supabase -> DONE 
+1. [USER VERIFICATION] -> Fondasi keamanan utama sebelum bot digunakan secara publik.
 2. [EMAIL SERVICE] -> Dibutuhkan untuk mengirim verification code kepada user.
 3. [AUTH MIDDLEWARE] -> Memastikan seluruh fitur hanya dapat diakses oleh user terverifikasi.
 4. [VERIFICATION CODE] -> Core authentication flow tidak dapat berjalan tanpa validasi kode.
@@ -48,7 +48,6 @@ Ranking List TO-DO
 42. [INFRASTRUCTURE] - Setup SSL (Let's Encrypt) -> Mengamankan komunikasi menuju service.
 43. [INFRASTRUCTURE] - Configure Nginx Reverse Proxy -> Menyiapkan arsitektur production yang lebih baik.
 44. [INFRASTRUCTURE] - Setup CI/CD with GitHub Actions -> Mempercepat dan menstandarkan deployment.
-45. [GOOGLE SHEET] - Tambah Sheet Rekap -> Menjadi fondasi reporting dan dashboard.
 48. [DATABASE] - Database Index Optimization -> Meningkatkan performa query ketika data semakin besar.
 49. [ADVANCED REPORTING] - Custom Rekap Period -> Menambah fleksibilitas periode laporan berdasarkan tanggal gajian.
 50. [DOCUMENTATION] - Architecture Diagram -> Membantu memahami struktur sistem secara keseluruhan.
@@ -66,7 +65,7 @@ TO-DO : AUTHENTICATION
 ================================ */
 /*
 	[USER VERIFICATION]
-	☐ Mandatory Email Verification
+	DONE -> Mandatory Email Verification
 		DESCRIPTION:
 			User wajib memverifikasi email sebelum dapat menggunakan seluruh fitur bot.
 		FLOW:
@@ -103,18 +102,8 @@ TO-DO : AUTHENTICATION
 			* User yang belum terverifikasi tidak dapat menggunakan fitur bot.
 			* Seluruh transaksi, saldo, rekap, dan fitur AI ditolak sampai verifikasi berhasil.
 		BUSINESS RULE:
-			* Mapping berdasarkan nomor WhatsApp (data.from).
 			* Setelah verifikasi berhasil, nomor WhatsApp dikaitkan dengan email.
 			* Jika user menggunakan nomor WhatsApp yang berbeda, maka wajib melakukan verifikasi ulang.
-			* Satu nomor WhatsApp hanya dapat terhubung ke satu email.
-		GOOGLE SHEET:
-			Sheet:
-				UserAuth
-			Columns:
-				- phone_number
-				- email
-				- is_verified
-				- created_at
 */
 
 /* ================================
@@ -122,53 +111,43 @@ TO-DO : AUTH INFRASTRUCTURE
 ================================ */
 /*
 	[EMAIL SERVICE]
-	☐ Setup Email Provider
+	DONE -> Setup Email Provider
 		TARGET:
-			- Nodemailer SMTP
-			- Resend API (Future)
+			- RESEND
 		ACTION:
 			* Generate verification code
 			* Send verification email
 			* Handle email delivery failure
 	
 	[AUTH MIDDLEWARE]
-	☐ Authentication Middleware
+	DONE -> Authentication Middleware
 		ACTION:
 			* Check verification status sebelum memproses pesan
 			* Block seluruh command untuk user yang belum terverifikasi
 			* Redirect user ke flow verifikasi email
 			
 	[VERIFICATION CODE]
-	☐ Verification Code Management
+	DONE -> Verification Code Management
 		ACTION:
-			* Generate random 10 digit code
+			* Generate random 6 digit code
 			* Set expiration time
 			* Validate verification code
 		RULE:
-			* Code berlaku 10 menit
+			* Code berlaku 6 menit
 			* Code hanya dapat digunakan satu kali
 	
 	[SESSION MANAGEMENT]
-	☐ WhatsApp Number Binding
+	DONE -> WhatsApp Number Binding
 		ACTION:
 			* Simpan relasi nomor WhatsApp ↔ email
-			* Validasi identitas berdasarkan data.from
 			* Wajib verifikasi ulang jika menggunakan nomor berbeda
 	
 	[RATE LIMITING]
-	☐ Verification Request Protection
+	DONE -> Verification Request Protection
 		ACTION:
 			* Batasi jumlah request kode verifikasi
 			* Cegah spam email
 			* Cegah brute force verification code
-
-	[FUTURE MIGRATION]
-	☐ Migrate UserAuth Storage
-		CURRENT:
-			Google Sheet (UserAuth)
-		
-		FUTURE:
-			PostgreSQL Users Table
 */
 
 
@@ -198,8 +177,6 @@ TO-DO : MANDATORY FEATURES
     ACTION:
       * Saldo rekening asal berkurang
       * Saldo rekening tujuan bertambah
-      * Transaksi tersimpan ke Sheet Transaksi
-      * Saldo rekening diperbarui pada Sheet Rekening
     OUTPUT:
       Tipe: SWITCH
     BUSINESS RULE:
@@ -211,7 +188,7 @@ TO-DO : MANDATORY FEATURES
       * Setelah transaksi SWITCH berhasil dicatat, sistem menampilkan informasi bahwa transaksi telah dikategorikan sebagai SWITCH.
       * Sistem juga memberikan panduan koreksi apabila interpretasi transaksi tidak sesuai dengan maksud pengguna.
     EXAMPLE OUTPUT:
-      "📝 Catatan Keuangan by @git ━━━━━━━━━━━━━━ ℹ️ ID: TRX-2286A8FC5FBD ↔️ Tipe: SWITCH 💰 Jumlah: Rp500.000 ━━━━━━━━━━━━━━ 💳 Rekening Asal: BCA 💳 Rekening Tujuan: Dana ━━━━━━━━━━━━━━ Tercatat ✅ ℹ️ Catatan: Transaksi dicatat sebagai SWITCH antar rekening pribadi. Jika ini seharusnya transfer ke orang lain(OUTCOME), ketik: • Ketik "undo" • Atau "hapus {trx}" 💡 Untuk transfer ke 
+      "📝 Catatan Keuangan by @git ━━━━━━━━━━━━━━ ℹ️ ID: TRX-2286A8FC5FBD ↔️ Tipe: SWITCH 💰 Jumlah: Rp500.000 ━━━━━━━━━━━━━━ 💳 Rekening Asal: BCA 💳 Rekening Tujuan: Dana ━━━━━━━━━━━━━━ Tercatat ✅ ℹ️ Catatan: Transaksi dicatat sebagai SWITCH antar rekening pribadi. Jika ini seharusnya transfer ke orang lain(OUTCOME), ketik: • Ketik "undo" • Atau "hapus {trx}" 💡 Untuk transfer ke orang lain, harap masukkan nama orangnya, contoh : "transfer 500rb ke andi"
     ACCEPTANCE CRITERIA:
       * Saldo rekening asal berkurang sesuai nominal transfer.
       * Saldo rekening tujuan bertambah sesuai nominal transfer.
@@ -239,6 +216,13 @@ TO-DO : MANDATORY FEATURES
 			* Total pengeluaran
 			* Top kategori
 			* Ringkasan minggu berjalan
+	
+	☐ Report PDF Bulanan
+		ACTION : pake resend API
+		OUTPUT : 
+			* Show Chart
+			* AI Insight
+			
 
 	[TRANSACTION]
 	☐ Hapus Transaksi Terakhir
@@ -419,11 +403,6 @@ TO-DO : OPTIONAL FEATURES
 		DEFAULT:
 			28 → 27 bulan berikutnya
 
-	[GOOGLE SHEET]
-	☐ Tambah Sheet Rekap
-		ACTION:
-			* Generate summary otomatis
-			* Menjadi sumber dashboard
 
 	[DASHBOARD]
 	☐ Web Dashboard
@@ -443,7 +422,7 @@ TO-DO : DATABASE
 
 /*
   [DESIGN DATABASE]
-	☐ Design SQL Database Schema
+	DONE-> Design SQL Database Schema
 		TABLES:
 			- users
 			- accounts
@@ -452,7 +431,7 @@ TO-DO : DATABASE
 			- budgets
   
   [DATABASE MIGRATION]
-	☐ Migrate Data Layer
+	DONE -> Migrate Data Layer
 		Google Sheet -> SQL Database
 		TARGET:
 		- PostgreSQL (Recommended)
