@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 
 const { config } = require("../config");
-const { getCurrentUserId } = require("../modules/user/user.service");
 const { classifyMessage } = require("../modules/ai/ai.service");
 const {
   insertTransaksi,
@@ -88,8 +87,6 @@ router.post("/process", async (req, res) => {
   if (!pesan || typeof pesan !== "string") {
     return res.status(400).json({ error: "Field 'body' wajib diisi." });
   }
-
-  const trxId = generateTrxId();
 
   try {
     // ================================
@@ -234,6 +231,7 @@ router.post("/process", async (req, res) => {
 
       // ── TRANSFER / SWITCH ────────────────────────
       case "TRANSFER": {
+        const trxId = generateTrxId();
         const rekAsal = normalizeRekening(ai.rek_from || "");
         const rekTujuan = normalizeRekening(ai.rek_to || "");
         const jumlah = ai.amt;
@@ -282,6 +280,7 @@ router.post("/process", async (req, res) => {
 
       // ── CATAT TRANSAKSI ─────────────────────────
       case "ADD_TRANSACTION": {
+        const trxId = generateTrxId();
         const periode = getPeriodeGajian(new Date());
 
         // Input limit check (parallel queries)

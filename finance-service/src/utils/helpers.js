@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const { config } = require("../config");
 
 /**
@@ -22,21 +23,8 @@ function formatTanggalIndo(d) {
   return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/**
- * Generate a random transaction ID.
- * Example: "TRX-3A9F2C1B"
- */
 function generateTrxId() {
-  const bytes = Array.from({ length: 6 }, () =>
-    Math.floor(Math.random() * 256)
-  );
-  return (
-    "TRX-" +
-    bytes
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .toUpperCase()
-  );
+  return "TRX-" + crypto.randomBytes(6).toString("hex").toUpperCase();
 }
 
 /**
