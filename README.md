@@ -6,7 +6,7 @@ Track income, expenses, and balances through simple conversations — no app to 
 
 ---
 ```
-messaging-service/   ← WhatsApp gateway (Baileys), zero business logic
+messaging-service/   ← WhatsApp gateway (Baileys), Receive messages, Send replies, zero business logic
 finance-service/     ← Semua logic keuangan, Supabase, AI classifier
 ```
 
@@ -69,66 +69,94 @@ Response:
 
 ---
 
-## 🚀 Current Status — MVP
+# 🗺️ Roadmap
 
-| Feature | Status |
-|---|---|
-| Transaction Recording (Income & Outcome) | ✅ |
-| Auto Category Detection | ✅ |
-| Auto Account Detection | ✅ |
-| Account Name Normalization | ✅ |
-| Balance Checking (specific & all) | ✅ |
-| Inter-account Transfer | ✅ |
-| Monthly Report with Breakdown | ✅ |
-| Safe Mode (low confidence → confirmation) | ✅ |
-| Intent Validation Layer | ✅ |
-| Prompt Injection Protection | ✅ |
-| AI Fallback Chain (7 models) | ✅ |
-| Supabase Integration | ✅ |
-| Multi-user Schema (user scoped) | ✅ |
+## 🚀 Version 1.0 — Public Beta
 
----
+> **Goal:** Deliver a stable, secure, and production-ready AI-powered personal finance bot for WhatsApp.
 
-## 🎯 Roadmap
+### 🔴 Must Have
 
-### Version 1.0 — Public Beta
-> Fokus: stabilitas, keamanan, dan pengalaman pengguna.
+Core features required before the first public release.
 
-| Feature | Status | Notes |
-|---|---|---|
-| Email Verification | ⏳ | Wajib sebelum bisa pakai bot |
-| Auth Middleware | ⏳ | Block semua command sampai verified |
-| WA Session Binding | ⏳ | Mapping nomor WA ↔ email |
-| Undo Last Transaction | ⏳ | Rollback saldo otomatis |
-| Delete Transaction by ID | ⏳ | `hapus TRX-XXXXXX` |
-| Balance Sync / Rebuild | ⏳ | Recovery ketika saldo tidak sinkron |
-| Weekly Report | ⏳ | `rekap mingguan` |
-| Budget per Category | ⏳ | Progress budget tiap transaksi |
-| Top Spending Category | ⏳ | 🥇🥈🥉 per periode gajian |
-| AI Monthly Insight | ⏳ | Perbandingan, trend, rekomendasi |
-| Input Limit (Freemium) | ⏳ | 40 transaksi/bulan untuk free user |
-| Docker Deployment | ⏳ | Containerize NodeJS + Baileys |
-| VPS Deployment | ⏳ | 24/7 uptime |
-| Monitoring & Logging | ⏳ | Uptime, session health, error log |
-
-**Target:** Multi-user ready · Auth enabled · Dockerized
+| Feature                                  | Status    |
+| ---------------------------------------- | --------- |
+| Transaction Recording (Income & Expense) | ✅ Done    |
+| Auto Category Detection                  | ✅ Done    |
+| Auto Account Detection                   | ✅ Done    |
+| Account Name Normalization               | ✅ Done    |
+| Balance Checking                         | ✅ Done    |
+| Inter-account Transfer                   | ✅ Done    |
+| Monthly Report with Breakdown            | ✅ Done    |
+| Safe Mode (Low Confidence Confirmation)  | ✅ Done    |
+| Intent Validation Layer                  | ✅ Done    |
+| Prompt Injection Protection              | ✅ Done    |
+| AI Fallback Chain                        | ✅ Done    |
+| Supabase Integration                     | ✅ Done    |
+| Multi-user Database Schema               | ✅ Done    |
+| Email Verification                       | ⏳ Planned |
+| Authentication Middleware                | ⏳ Planned |
+| WhatsApp Session Binding                 | ⏳ Planned |
+| Verification Code Management             | ⏳ Planned |
+| Rate Limiting                            | ⏳ Planned |
+| Undo Last Transaction                    | ⏳ Planned |
+| Delete Transaction by ID                 | ⏳ Planned |
+| Balance Rebuild / Sync                   | ⏳ Planned |
+| Docker Deployment                        | ⏳ Planned |
+| VPS Deployment                           | ⏳ Planned |
+| Monitoring & Logging                     | ⏳ Planned |
 
 ---
 
-### Version 2.0 — Growth Release
-> Fokus: insight, dashboard, dan monetisasi.
+### 🟡 Should Have
 
-| Feature | Status |
-|---|---|
-| Web Dashboard | ⏳ |
-| Premium Subscription | ⏳ |
-| Advanced Analytics | ⏳ |
-| AI Financial Insight Engine | ⏳ |
-| Custom Report Period | ⏳ |
-| Budget Recommendation | ⏳ |
-| Spending Trend Analysis | ⏳ |
+Important improvements after the public beta.
 
-**Target:** SaaS-ready · Advanced insights · Premium features
+| Feature                     | Status    |
+| --------------------------- | --------- |
+| AI Weekly & Monthly Report  | ⏳ Planned |
+| Budget per Category         | ⏳ Planned |
+| Top Spending Category       | ⏳ Planned |
+| Multi Transaction Input   | ⏳ Planned |
+| PDF Report Monthly          | ⏳ Planned |
+| Freemium Input Limit        | ⏳ Planned |
+| Comprehensive Testing       | ⏳ Planned |
+| Better Error Handling       | ⏳ Planned |
+| Centralized Logger          | ⏳ Planned |
+| Persistent WhatsApp Session | ⏳ Planned |
+
+---
+
+### 🟢 Could Have
+
+Quality-of-life improvements and AI optimization.
+
+| Feature                   | Status    |
+| ------------------------- | --------- |
+| Rule-Based Intent Router  | ⏳ Planned |
+| Structured JSON Output    | ⏳ Planned |
+| Prompt Compression        | ⏳ Planned |
+| Dynamic Context Injection | ⏳ Planned |
+| AI Insight Cache          | ⏳ Planned |
+| Smart Model Routing       | ⏳ Planned |
+| Android Dashboard         | ⏳ Planned |
+
+---
+
+### ⚪ Won't Have (Version 1.0)
+
+Planned for Version 2.0.
+
+| Feature                     | Status         |
+| --------------------------- | -------------- |
+| Web Dashboard               | 📅 Version 2.0 |
+| Premium Subscription        | 📅 Version 2.0 |
+| Advanced Analytics          | 📅 Version 2.0 |
+| AI Financial Insight Engine | 📅 Version 2.0 |
+| Budget Recommendation       | 📅 Version 2.0 |
+| Spending Trend Analysis     | 📅 Version 2.0 |
+| Custom Report Period        | 📅 Version 2.0 |
+| Payment Integration         | 📅 Version 2.0 |
 
 ---
 
@@ -136,7 +164,6 @@ Response:
 
 ### Prerequisites
 - Node.js 18+
-- Google Account (untuk Apps Script)
 - Supabase account (free tier cukup)
 - OpenRouter account (free tier cukup)
 
@@ -145,7 +172,7 @@ Response:
 ### 1. Supabase — Setup Database
 
 1. Buat project baru di [supabase.com](https://supabase.com)
-2. Buka **SQL Editor**, paste & run isi `supabase/schema.sql`
+2. Buka **SQL Editor**, paste & run isi `supabase/supabase_setup.sql`
 3. Verifikasi: semua tabel terbuat (`users`, `wa_sessions`, `accounts`, `transactions`)
 4. Buka **Settings → API**, copy:
    - **Project URL** → untuk `SUPABASE_URL`
