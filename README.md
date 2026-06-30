@@ -171,6 +171,39 @@ Planned for Version 2.0.
 
 ---
 
+## 🌿 Branch Strategy
+
+```
+master              ← production-ready, hanya menerima merge dari dev
+dev                 ← integration branch, semua fitur masuk sini dulu
+feature/{namaFitur} ← branch per fitur, dibuat dari dev, di-merge kembali ke dev
+```
+
+**Workflow:**
+```bash
+# mulai fitur baru
+git checkout dev
+git checkout -b feature/budget-kategori
+
+# selesai, merge ke dev
+git checkout dev
+git merge feature/budget-kategori
+git push
+
+# kalau dev sudah siap release → merge ke master
+git checkout master
+git merge dev
+git push
+```
+
+| Branch | Sumber | Merge ke | Keterangan |
+|---|---|---|---|
+| `master` | — | — | Production only, jangan commit langsung |
+| `dev` | `master` | `master` | Staging / integration |
+| `feature/*` | `dev` | `dev` | Satu branch per fitur |
+
+---
+
 ## ⚙️ Setup Guide
 
 ### Prerequisites

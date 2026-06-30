@@ -121,6 +121,16 @@ All DB calls go through `sbGet`/`sbPost`/`sbRpc` in `utils/supabase.js` using th
 - **Budget**: Stored in `budgets (user_id, category, amount)` table. Set via `set budget [cat] [num]`, check via `budget [cat]`. Progress appended automatically after every OUTCOME.
 - **AI Insight Cache**: In-memory Map in `ai.service.js`, TTL 1 hour, keyed by `userId:startISO:endISO`. First recap call adds ~5–30s latency; subsequent calls are instant until TTL expires or server restarts.
 
+## Branch Strategy
+
+```
+master              ← production-ready, hanya menerima merge dari dev
+dev                 ← integration branch, semua fitur masuk sini dulu
+feature/{namaFitur} ← branch per fitur, dibuat dari dev, di-merge kembali ke dev
+```
+
+Jangan commit langsung ke `master`. Alur: `feature/*` → `dev` → `master`.
+
 ## Testing Setup (npm test without WA)
 
 Add to `finance-service/.env`:
