@@ -12,21 +12,21 @@ Ranking List TO-DO
 6. [RATE LIMITING] -> Mencegah spam email dan brute-force verification code. -> TO-BE TESTING
 7. [TRANSACTION] - Hapus Transaksi Terakhir -> Saat ini masih memiliki risiko ketidaksinkronan saldo rekening. -> DONE
 8. [TRANSACTION] - Hapus Transaksi Tertentu -> Mempermudah koreksi transaksi tanpa mengganggu histori lainnya. -> DONE
-9. [TRANSACTION] - Rebuild / Sync Saldo Rekening -> Menjadi recovery mechanism ketika saldo dan transaksi tidak sinkron. -> TO-BE TESTING
-10. [ACCOUNT MANAGEMENT] - Switch Uang Antar Rekening -> Fitur finansial penting yang mempengaruhi saldo dan histori transaksi. -> TO-BE TESTING
-11. [BUDGETING] -> Memberikan value langsung kepada user untuk mengontrol pengeluaran. -> TO-BE TESTING
+9. [TRANSACTION] - Rebuild / Sync Saldo Rekening -> Menjadi recovery mechanism ketika saldo dan transaksi tidak sinkron. -> DONE (resyncBalances() memanggil SQL function resync_balances yang rebuild saldo dari histori transaksi; dipicu via "resync"/"sync saldo"/"rebuild saldo")
+10. [ACCOUNT MANAGEMENT] - Switch Uang Antar Rekening -> Fitur finansial penting yang mempengaruhi saldo dan histori transaksi. -> DONE (TRANSFER intent dicek: rek_to ada di DB → SWITCH 2 baris type=SWITCH tidak masuk rekap; rek_to tidak ada → OUTCOME dari rek_from saja)
+11. [BUDGETING] -> Memberikan value langsung kepada user untuk mengontrol pengeluaran. -> DONE (set via "set budget [cat] [nominal]", cek via "budget [cat]", progress otomatis tampil setelah setiap OUTCOME sesuai kategori)
 12. [ANALYTICS] - Top Spending Category -> Insight sederhana dengan effort implementasi yang rendah.
 13. [REPORTING] - Rekap Mingguan -> Memudahkan monitoring kondisi keuangan mingguan.
-14. [REPORTING] - AI Insight Rekap Bulanan -> Menjadi fitur pembeda utama dibanding finance tracker biasa.
-15. [AI OPTIMIZATION] - Intent Router -> Mengurangi request AI yang sebenarnya bisa diproses secara rule-based.
-16. [AI OPTIMIZATION] - Rule-Based First Strategy -> Menghemat token dan biaya penggunaan model.
-17. [AI OPTIMIZATION] - Structured JSON Output -> Mempermudah parsing dan mengurangi token output.
-18. [AI OPTIMIZATION] - Prompt Compression -> Mengurangi penggunaan context window secara signifikan.
-19. [AI OPTIMIZATION] - Dynamic Context Injection -> Hanya mengirim informasi yang relevan ke model.
-20. [AI OPTIMIZATION] - Multi Model Routing -> Mengoptimalkan biaya inference berdasarkan kompleksitas request.
-21. [AI OPTIMIZATION] - AI Insight Cache -> Menghindari request AI yang berulang. -> TO-BE TESTING
+14. [REPORTING] - AI Insight Rekap Bulanan -> Menjadi fitur pembeda utama dibanding finance tracker biasa. -> DONE (generateInsight() dipanggil setelah generateRekap(), hasilnya di-cache in-memory 1 jam per user per periode)
+15. [AI OPTIMIZATION] - Intent Router -> Mengurangi request AI yang sebenarnya bisa diproses secara rule-based. -> DONE (undo/delete/resync/budget/check-balance semua dicegat via regex di finance.route.js sebelum memanggil classifyMessage())
+16. [AI OPTIMIZATION] - Rule-Based First Strategy -> Menghemat token dan biaya penggunaan model. -> DONE (sama dengan Intent Router; rule-based intercept menghemat 5–7 AI call per pesan non-transaksi)
+17. [AI OPTIMIZATION] - Structured JSON Output -> Mempermudah parsing dan mengurangi token output. -> DONE (prompt enforce pure JSON; system message melarang markdown/narasi; cleanJson strip backtick sebelum JSON.parse)
+18. [AI OPTIMIZATION] - Prompt Compression -> Mengurangi penggunaan context window secara signifikan. -> DONE (~47% lebih kecil dari prompt awal: verbose rules dikompres jadi 4 baris, injection guard dipindah ke system message, contoh JSON INCOME ditambahkan)
+19. [AI OPTIMIZATION] - Dynamic Context Injection -> Hanya mengirim informasi yang relevan ke model. -> SKIP (butuh extra DB call sebelum tiap AI request; overhead latency > penghematan token untuk use case ini)
+20. [AI OPTIMIZATION] - Multi Model Routing -> Mengoptimalkan biaya inference berdasarkan kompleksitas request. -> SKIP (tidak bisa deteksi kompleksitas sebelum memanggil AI; fallback chain 7 model sudah cukup)
+21. [AI OPTIMIZATION] - AI Insight Cache -> Menghindari request AI yang berulang. -> DONE (in-memory Map TTL 1 jam, key = userId:startISO:endISO; cache miss hanya pada rekap pertama per periode)
 22. [Improvement Input] -> Meningkatkan user experience dengan multi transaksi dalam satu chat.
-23. [LIMIT INPUT] -> Fondasi monetisasi untuk versi freemium dan premium. -> DONE, default 200
+23. [LIMIT INPUT] -> Fondasi monetisasi untuk versi freemium dan premium. -> DONE (default 200 INCOME/OUTCOME per periode gajian; disimpan di kolom input_limit tabel users; SWITCH dan balance check tidak dihitung)
 24. [TESTING] - Comprehensive Unit Testing -> Menjamin logic bisnis tetap stabil ketika fitur bertambah.
 25. [TESTING] - Integration Testing -> Memastikan integrasi AI, Spreadsheet, dan WhatsApp berjalan baik.
 26. [TESTING] - API Endpoint Testing -> Mengurangi risiko regression pada endpoint internal.

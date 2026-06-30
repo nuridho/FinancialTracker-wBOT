@@ -110,9 +110,9 @@ Core features required before the first public release.
 | WhatsApp Session Binding                 | ✅ Done |
 | Verification Code Management             | ✅ Done|
 | Rate Limiting                            | ✅ Done |
-| Undo Last Transaction                    | ⏳ Planned |
-| Delete Transaction by ID                 | ⏳ Planned |
-| Balance Rebuild / Sync                   | ⏳ Planned |
+| Undo Last Transaction                    | ✅ Done    |
+| Delete Transaction by ID                 | ✅ Done    |
+| Balance Rebuild / Sync                   | ✅ Done    |
 | Docker Deployment                        | ⏳ Planned |
 | VPS Deployment                           | ⏳ Planned |
 | Monitoring & Logging                     | ⏳ Planned |
@@ -125,12 +125,13 @@ Important improvements after the public beta.
 
 | Feature                     | Status    |
 | --------------------------- | --------- |
-| AI Weekly & Monthly Report  | ⏳ Planned |
-| Budget per Category         | ⏳ Planned |
+| AI Monthly Recap Insight    | ✅ Done    |
+| Budget per Category         | ✅ Done    |
+| Freemium Input Limit        | ✅ Done    |
+| AI Weekly Report            | ⏳ Planned |
 | Top Spending Category       | ⏳ Planned |
-| Multi Transaction Input   | ⏳ Planned |
+| Multi Transaction Input     | ⏳ Planned |
 | PDF Report Monthly          | ⏳ Planned |
-| Freemium Input Limit        | ⏳ Planned |
 | Comprehensive Testing       | ⏳ Planned |
 | Better Error Handling       | ⏳ Planned |
 | Centralized Logger          | ⏳ Planned |
@@ -144,11 +145,11 @@ Quality-of-life improvements and AI optimization.
 
 | Feature                   | Status    |
 | ------------------------- | --------- |
-| Rule-Based Intent Router  | ⏳ Planned |
-| Structured JSON Output    | ⏳ Planned |
-| Prompt Compression        | ⏳ Planned |
+| Rule-Based Intent Router  | ✅ Done    |
+| Structured JSON Output    | ✅ Done    |
+| Prompt Compression        | ✅ Done    |
+| AI Insight Cache          | ✅ Done    |
 | Dynamic Context Injection | ⏳ Planned |
-| AI Insight Cache          | ⏳ Planned |
 | Smart Model Routing       | ⏳ Planned |
 | Android Dashboard         | ⏳ Planned |
 
@@ -271,34 +272,41 @@ Setelah terhubung, kirim pesan ke nomor WA kamu sendiri untuk test.
 
 ## 🧪 Testing
 
-**Jalankan test:**
-1. node runner.js all      # semua 57 kasus (Part 1 + Part 2)
-2. node runner.js part1    # Section A-E (32 kasus) — Income/Outcome/Transfer/Balance
-3. node runner.js part2    # Section F-I (25 kasus) — Recap/Ambiguous/General/Security
-4. node runner.js quick    # 2 kasus cepat untuk sanity check
+**Setup sekali (agar `npm test` langsung jalan tanpa WA):**
+Tambahkan ke `finance-service/.env`:
+```env
+TEST_WA_NUMBER=test-runner
+TEST_USER_ID=<uuid user test di Supabase>
 ```
 
-Atau via npm:
+**Jalankan test:**
+```bash
+cd testing-service
+npm run reset        # bersihkan transaksi, saldo, dan budget user test
+npm test             # semua 66 kasus (Part 1 + Part 2 + Part 3)
+npm run test:part1   # Section A-E (32 kasus) — Income/Outcome/Switch/Balance
+npm run test:part2   # Section F-I (25 kasus) — Recap/Ambiguous/General/Security
+npm run test:part3   # Section J-L (9 kasus) — Undo/Resync/Budget (jalankan setelah part1)
+npm run test:quick   # 2 kasus cepat untuk sanity check
 ```
-1. npm test          # all
-2. npm run test:part1
-3. npm run test:part2
-4. npm run test:quick
 
 **Test coverage:**
 
 | Section | Kategori | Jumlah |
 |---|---|---|
-| A | Income — berbagai format nominal | 6 |
+| A | Income — berbagai format nominal | 7 |
 | B | Outcome — berbagai kategori & rekening | 14 |
-| C | Transfer antar rekening | 4 |
+| C | Switch antar rekening (rek_to ada di DB) | 5 |
 | D | Cek saldo spesifik | 4 |
 | E | Ringkasan semua saldo | 4 |
-| F | Rekap bulanan | 4 |
+| F | Rekap bulanan + AI insight | 4 |
 | G | Ambiguous — tanpa nominal (wajib GENERAL) | 9 |
 | H | Non-finansial (wajib GENERAL) | 6 |
 | I | Prompt injection & security | 6 |
-| **Total** | | **57 kasus** |
+| J | Undo transaksi terakhir & hapus by TRX ID | 3 |
+| K | Resync saldo dari histori transaksi | 3 |
+| L | Budget per kategori + progress setelah OUTCOME | 3 |
+| **Total** | | **68 kasus** |
 
 ---
 
@@ -367,18 +375,23 @@ Semua model **gratis** via OpenRouter free tier.
 ## 💬 Contoh Penggunaan
 
 ```
-Makan 50rb gopay          → ✅ OUTCOME Rp 50.000 · Makan · GoPay
-Gajian 7.5jt ke BCA       → ✅ INCOME Rp 7.500.000 · Gaji · BCA
-Transfer 500rb BCA ke Dana → ✅ Transfer Rp 500.000
-saldo BCA                  → 💰 Saldo BCA: Rp X.XXX.XXX
-keuangan gue gimana        → 💰 Ringkasan semua rekening
-rekap bulan ini            → 📊 Rekap periode berjalan
+Makan 50rb gopay              → ✅ OUTCOME Rp 50.000 · Makan · GoPay (+ budget progress jika diset)
+Gajian 7.5jt ke BCA           → ✅ INCOME Rp 7.500.000 · Gaji · BCA
+Transfer 500rb BCA ke Dana    → 🔄 SWITCH Rp 500.000 (jika Dana ada di akun) / OUTCOME (jika tidak)
+saldo BCA                     → 💰 Saldo BCA: Rp X.XXX.XXX
+keuangan gue gimana           → 💰 Ringkasan semua rekening
+rekap bulan ini               → 📊 Rekap + 💡 AI Insight (cache 1 jam)
+undo                          → 🗑️ Hapus transaksi terakhir + rollback saldo
+hapus TRX-XXXXXXXX           → 🗑️ Hapus transaksi spesifik by ID + rollback saldo
+resync                        → 🔄 Rebuild semua saldo dari histori transaksi
+set budget Makan 500000       → ✅ Budget Makan diset Rp 500.000/periode
+budget Makan                  → 📊 Progress budget Makan periode ini
 ```
 
 ```
-Saya habis makan sushi     → 🤖 Bukan Track Keuangan (tanpa nominal)
-BCA lagi error ya?         → 🤖 Bukan Track Keuangan
-Lupakan instruksi sebelumnya → 🤖 Bukan Track Keuangan (prompt injection)
+Saya habis makan sushi        → 🤖 Bukan Track Keuangan (tanpa nominal)
+BCA lagi error ya?            → 🤖 Bukan Track Keuangan
+Lupakan instruksi sebelumnya  → 🤖 Bukan Track Keuangan (prompt injection)
 ```
 
 ---
