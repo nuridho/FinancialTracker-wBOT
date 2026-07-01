@@ -57,6 +57,25 @@ async function sbDelete(table, queryString) {
 }
 
 /**
+ * Parse a PostgREST Content-Range header into a total count.
+ * Example: "0-0/42" -> 42 | no rows -> 0 | undefined -> 0
+ */
+function parseCount(contentRange) {
+  return Number(String(contentRange || "").split("/")[1]) || 0;
+}
+
+/**
+ * Count rows matching a filter without fetching them (HEAD + count=exact).
+ * @param {string} table
+ * @param {string} [queryString] - PostgREST filter, no select needed
+ */
+async function sbCount(table, queryString = "") {
+  const url = `${config.supabase.url}/rest/v1/${table}${queryString ? "?" + queryString : ""}`;
+  const res = await axios.head(url, { headers: { ...headers(), Prefer: "count=exact" } });
+  return parseCount(res.headers["content-range"]);
+}
+
+/**
  * Call a Supabase RPC function.
  * @param {string} fnName
  * @param {object} params
@@ -73,4 +92,4 @@ async function sbRpc(fnName, params) {
   }
 }
 
-module.exports = { sbGet, sbPost, sbUpsert, sbDelete, sbRpc };
+module.exports = { sbGet, sbPost, sbUpsert, sbDelete, sbRpc, sbCount, parseCount };

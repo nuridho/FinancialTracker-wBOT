@@ -1,4 +1,4 @@
-const { sbGet, sbPost, sbDelete, sbRpc } = require("../../utils/supabase");
+const { sbGet, sbPost, sbDelete, sbRpc, sbCount } = require("../../utils/supabase");
 
 /**
  * Insert a single transaction row.
@@ -109,14 +109,14 @@ async function deleteTransactionWithRollback(userId, trxId) {
 
 /**
  * Count INCOME + OUTCOME transactions in a date range (used for input limit).
+ * Server-side count — no rows pulled into memory.
  */
 async function getTransactionCount(userId, start, end) {
-  const rows = await sbGet(
+  return sbCount(
     "transactions",
     `user_id=eq.${userId}&type=in.(INCOME,OUTCOME)` +
-    `&created_at=gte.${start.toISOString()}&created_at=lte.${end.toISOString()}&select=id`
+    `&created_at=gte.${start.toISOString()}&created_at=lte.${end.toISOString()}`
   );
-  return rows?.length || 0;
 }
 
 module.exports = { insertTransaksi, normalizeRekening, getLastTransaction, deleteTransactionWithRollback, getTransactionCount };

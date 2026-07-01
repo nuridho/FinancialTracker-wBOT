@@ -13,17 +13,20 @@ function buildPrompt(text) {
     "CHECK_BALANCE — explicit balance request for one account. Fields: intent,rek\n" +
     "CHECK_BALANCE_ALL — request for all account balances. Fields: intent\n" +
     "GET_RECAP — spending history/summary over time. Fields: intent\n" +
+    "MULTI — 2+ separate transactions in one message. Fields: intent,items:[{cat,amt,type(INCOME|OUTCOME),rek}],confidence\n" +
     "GENERAL — everything else. Fields: intent\n\n" +
     "Rules:\n" +
     "- No amount → GENERAL. ('Habis makan', 'Baru gajian' → GENERAL)\n" +
     "- One account only → ADD_TRANSACTION not TRANSFER. ('Terima 1.5jt ke Jago' → INCOME)\n" +
     "- Vague mention of account → GENERAL. ('Dana saya sedikit', 'BCA error' → GENERAL)\n" +
+    "- 2+ distinct amounts each with its own action → MULTI, one INCOME/OUTCOME item per transaction. Single amount → never MULTI.\n" +
     "- GET_RECAP = spending over time; CHECK_BALANCE_ALL = current snapshot\n" +
     "- confidence: integer 0-100\n\n" +
     "Output ONLY valid JSON:\n" +
     '{"intent":"ADD_TRANSACTION","cat":"Makan","amt":25000,"type":"OUTCOME","rek":"GoPay","confidence":95}\n' +
     '{"intent":"ADD_TRANSACTION","cat":"Gaji","amt":7500000,"type":"INCOME","rek":"BCA","confidence":97}\n' +
     '{"intent":"TRANSFER","amt":500000,"rek_from":"BCA","rek_to":"Dana","confidence":92}\n' +
+    '{"intent":"MULTI","items":[{"cat":"Makan","amt":25000,"type":"OUTCOME","rek":"BCA"},{"cat":"Transport","amt":50000,"type":"OUTCOME","rek":"GoPay"}],"confidence":90}\n' +
     '{"intent":"CHECK_BALANCE","rek":"BCA"}\n' +
     '{"intent":"CHECK_BALANCE_ALL"}\n' +
     '{"intent":"GET_RECAP"}\n' +

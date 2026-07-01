@@ -20,6 +20,11 @@ const FINANCE_URL =
   process.env.TEST_FINANCE_URL ||
   `http://localhost:${process.env.PORT || 3001}`;
 
+// Match finance-service guard when INTERNAL_API_KEY is set
+const API_HEADERS = process.env.INTERNAL_API_KEY
+  ? { "x-api-key": process.env.INTERNAL_API_KEY }
+  : {};
+
 const DELAY_MS = 1500; // jeda antar request (hindari rate limit OpenRouter)
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -57,7 +62,7 @@ async function runTests(testCases, partLabel) {
       const res = await axios.post(
         `${FINANCE_URL}/process`,
         { from: "test-runner", body: tc.pesan },
-        { timeout: 35000 }
+        { timeout: 35000, headers: API_HEADERS }
       );
       // finance-service returns { reply } on success, { error } on failure
       content = res.data?.reply ?? res.data?.error ?? JSON.stringify(res.data);

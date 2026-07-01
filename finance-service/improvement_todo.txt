@@ -16,19 +16,20 @@ Ranking List TO-DO
 10. [ACCOUNT MANAGEMENT] - Switch Uang Antar Rekening -> Fitur finansial penting yang mempengaruhi saldo dan histori transaksi. -> DONE (TRANSFER intent dicek: rek_to ada di DB → SWITCH 2 baris type=SWITCH tidak masuk rekap; rek_to tidak ada → OUTCOME dari rek_from saja)
 11. [BUDGETING] -> Memberikan value langsung kepada user untuk mengontrol pengeluaran. -> DONE (set via "set budget [cat] [nominal]", cek via "budget [cat]", progress otomatis tampil setelah setiap OUTCOME sesuai kategori)
 12. [ANALYTICS] - Top Spending Category -> Insight sederhana dengan effort implementasi yang rendah.
-13. [REPORTING] - Rekap Mingguan -> Memudahkan monitoring kondisi keuangan mingguan.
+13.1 [REPORTING] - Rekap Mingguan -> Memudahkan monitoring kondisi keuangan mingguan.
+13.2 [REPORTING] - Monthly PDF Report -> Laporan keuangan bulanan dalam format PDF yang tidak hanya menampilkan angka, tetapi bercerita: chart pengeluaran per kategori yang visual, AI insight yang menjelaskan pola spending dan ke mana uang "bocor", serta rekomendasi konkret yang bisa langsung dieksekusi — bukan sekadar dashboard, tapi financial mirror yang membantu pengguna memahami dan memperbaiki kebiasaan keuangan mereka. 
 14. [REPORTING] - AI Insight Rekap Bulanan -> Menjadi fitur pembeda utama dibanding finance tracker biasa. -> DONE (generateInsight() dipanggil setelah generateRekap(), hasilnya di-cache in-memory 1 jam per user per periode)
 15. [AI OPTIMIZATION] - Intent Router -> Mengurangi request AI yang sebenarnya bisa diproses secara rule-based. -> DONE (undo/delete/resync/budget/check-balance semua dicegat via regex di finance.route.js sebelum memanggil classifyMessage())
 16. [AI OPTIMIZATION] - Rule-Based First Strategy -> Menghemat token dan biaya penggunaan model. -> DONE (sama dengan Intent Router; rule-based intercept menghemat 5–7 AI call per pesan non-transaksi)
 17. [AI OPTIMIZATION] - Structured JSON Output -> Mempermudah parsing dan mengurangi token output. -> DONE (prompt enforce pure JSON; system message melarang markdown/narasi; cleanJson strip backtick sebelum JSON.parse)
 18. [AI OPTIMIZATION] - Prompt Compression -> Mengurangi penggunaan context window secara signifikan. -> DONE (~47% lebih kecil dari prompt awal: verbose rules dikompres jadi 4 baris, injection guard dipindah ke system message, contoh JSON INCOME ditambahkan)
-19. [AI OPTIMIZATION] - Dynamic Context Injection -> Hanya mengirim informasi yang relevan ke model. -> SKIP (butuh extra DB call sebelum tiap AI request; overhead latency > penghematan token untuk use case ini)
-20. [AI OPTIMIZATION] - Multi Model Routing -> Mengoptimalkan biaya inference berdasarkan kompleksitas request. -> SKIP (tidak bisa deteksi kompleksitas sebelum memanggil AI; fallback chain 7 model sudah cukup)
+19. [AI OPTIMIZATION] - Dynamic Context Injection -> Hanya mengirim informasi yang relevan ke model. -> NOT YET (butuh extra DB call sebelum tiap AI request; overhead latency > penghematan token untuk use case ini)
+20. [AI OPTIMIZATION] - Multi Model Routing -> Mengoptimalkan biaya inference berdasarkan kompleksitas request. -> NOT YET (tidak bisa deteksi kompleksitas sebelum memanggil AI; fallback chain 7 model sudah cukup)
 21. [AI OPTIMIZATION] - AI Insight Cache -> Menghindari request AI yang berulang. -> DONE (in-memory Map TTL 1 jam, key = userId:startISO:endISO; cache miss hanya pada rekap pertama per periode)
-22. [Improvement Input] -> Meningkatkan user experience dengan multi transaksi dalam satu chat.
+22. [Improvement Input] -> Meningkatkan user experience dengan multi transaksi dalam satu chat. -> DONE (intent MULTI: AI split beberapa transaksi dalam 1 pesan jadi items[]; route loop recordAdd per item; reply gabungan dengan total masuk/keluar + budget progress per kategori. Batasan: INCOME/OUTCOME saja, transfer-in-multi belum didukung)
 23. [LIMIT INPUT] -> Fondasi monetisasi untuk versi freemium dan premium. -> DONE (default 200 INCOME/OUTCOME per periode gajian; disimpan di kolom input_limit tabel users; SWITCH dan balance check tidak dihitung)
 24. [TESTING] - Comprehensive Unit Testing -> Menjamin logic bisnis tetap stabil ketika fitur bertambah.
-25. [TESTING] - Integration Testing -> Memastikan integrasi AI, Spreadsheet, dan WhatsApp berjalan baik.
+25. [TESTING] - Integration Testing -> Memastikan integrasi AI, Supabase, dan WhatsApp berjalan baik.
 26. [TESTING] - API Endpoint Testing -> Mengurangi risiko regression pada endpoint internal.
 27. [TESTING] - Automated Test Coverage Reporting -> Menjaga kualitas codebase dalam jangka panjang.
 28. [CODE QUALITY] - Improve Error Handling -> Mengurangi crash dan memperjelas penyebab error.
@@ -44,7 +45,7 @@ Ranking List TO-DO
 38. [MONITORING] - Application Logging -> Menyediakan observability dasar pada production.
 39. [MONITORING] - WhatsApp Session Health Check -> Mengurangi risiko bot tidak merespons akibat disconnect.
 40. [MONITORING] - Uptime Monitoring -> Memberikan notifikasi ketika service down.
-41. [INFRASTRUCTURE] - Automated Google Sheet Backup -> Mengurangi risiko kehilangan data.
+41. [INFRASTRUCTURE] - Automated Supabase Backup -> Mengurangi risiko kehilangan data.
 42. [INFRASTRUCTURE] - Setup SSL (Let's Encrypt) -> Mengamankan komunikasi menuju service.
 43. [INFRASTRUCTURE] - Configure Nginx Reverse Proxy -> Menyiapkan arsitektur production yang lebih baik.
 44. [INFRASTRUCTURE] - Setup CI/CD with GitHub Actions -> Mempercepat dan menstandarkan deployment.
@@ -170,7 +171,7 @@ TO-DO : MANDATORY FEATURES
       * Jika Kategorinya berbeda, misal warteg itu makan, bensin itu transportasi maka akan nampilin detail 2 input itu dalma 1 pesan response 
 
   [ACCOUNT MANAGEMENT]
-  ☐ Switch Uang Antar Rekening
+  DONE -> Switch Uang Antar Rekening
     INPUT:
       "Transfer 500rb dari BCA ke Dana"
       "Pindah 1jt dari Jago ke BCA"
@@ -197,7 +198,7 @@ TO-DO : MANDATORY FEATURES
       * User dapat membatalkan transaksi menggunakan fitur Undo.
 	
 	[REPORTING]
-	☐ AI Insight Rekap Bulanan
+	DONE -> AI Insight Rekap Bulanan
 		INPUT:
 			"rekap"
 			"rekap bulanan"
@@ -225,7 +226,7 @@ TO-DO : MANDATORY FEATURES
 			
 
 	[TRANSACTION]
-	☐ Hapus Transaksi Terakhir
+	DONE -> Hapus Transaksi Terakhir
 		INPUT:
 			"undo"
 			"hapus transaksi terakhir"
@@ -240,7 +241,7 @@ TO-DO : MANDATORY FEATURES
     OUTPUT : 
       "Transaksi {trxId} yang merupakan kategori {cat} berhasil dihapus" 
 
-  ☐ Hapus Transaksi tertentu
+ 	DONE -> Hapus Transaksi tertentu
 		INPUT:
 			"hapus transaksi TRX-{trxId}"
       "Hapus {trxId}"
@@ -263,7 +264,7 @@ TO-DO : MANDATORY FEATURES
       * Jika TRX ID tidak ditemukan, tampilkan pesan error yang sesuai
 	
 	[BUDGETING]	
-	☐ Budget Per Kategori
+	DONE -> Budget Per Kategori
 		PRE-CONDITION:
 			* Budget disimpan pada spreadsheet/config	
 		INPUT:
@@ -289,7 +290,7 @@ TO-DO : AI OPTIMIZATION
 ================================ */
 /*
 	[INTENT ROUTER]
-	☐ Route Non-AI Commands
+	DONE -> Route Non-AI Commands
 		ACTION:
 			* Saldo -> Rule Based
 			* Rekap -> Rule Based
@@ -301,7 +302,7 @@ TO-DO : AI OPTIMIZATION
 			* Mempercepat response time
 
 	[RULE-BASED FIRST]
-	☐ AI as Fallback Strategy
+	DONE -> AI as Fallback Strategy
 		ACTION:
 			* Jalankan parser regex terlebih dahulu
 			* Gunakan AI hanya jika intent tidak terdeteksi
@@ -310,7 +311,7 @@ TO-DO : AI OPTIMIZATION
 			* Mengurangi biaya inference
 
 	[PROMPT OPTIMIZATION]
-	☐ Prompt Compression
+	DONE -> Prompt Compression
 		ACTION:
 			* Kurangi instruksi yang berulang
 			* Ringkas daftar kategori dan rekening
@@ -319,7 +320,7 @@ TO-DO : AI OPTIMIZATION
 			* Mengurangi token input
 
 	[DYNAMIC CONTEXT]
-	☐ Context Injection
+	NOT YET -> Context Injection
 		ACTION:
 			* Hanya kirim rekening yang relevan
 			* Hanya kirim kategori yang relevan
@@ -328,7 +329,7 @@ TO-DO : AI OPTIMIZATION
 			* Meminimalkan context window
 
 	[STRUCTURED OUTPUT]
-	☐ JSON Output Standardization
+	DONE -> JSON Output Standardization
 		ACTION:
 			* Seluruh output AI menggunakan JSON Schema
 			* Hindari output naratif yang panjang
@@ -344,7 +345,7 @@ TO-DO : AI OPTIMIZATION
 			* Mempermudah parsing response
 
 	[MULTI MODEL ROUTING]
-	☐ Smart Model Selection
+	NOT YET -> Smart Model Selection
 		ACTION:
 			* Parsing sederhana -> Small Model
 			* Parsing kompleks -> Large Model
@@ -353,7 +354,7 @@ TO-DO : AI OPTIMIZATION
 			* Mengoptimalkan biaya dan performa
 
 	[CACHING]
-	☐ AI Insight Cache
+	DONE -> AI Insight Cache
 		ACTION:
 			* Simpan hasil AI Insight Bulanan
 			* Simpan hasil AI Insight Mingguan
@@ -458,9 +459,18 @@ TO-DO : TECHNICAL IMPROVEMENT
 
   [CODE QUALITY]
   ☐ Refactor transaction service
+      - getTransactionCount: DONE (pakai sbCount = HEAD + count=exact, tidak pull rows ke memory)
+      - deleteTransactionWithRollback: dua sbDelete sequential tidak atomic → partial rollback jika crash; pindahkan ke Supabase RPC transaction. Sementara: gunakan resync sebagai recovery. (BELUM)
   ☐ Refactor account service
   ☐ Improve error handling
   ☐ Centralized logger
+  ☐ Fix generateRekap aggregation: saat ini loop JS in-memory; ganti ke SQL GROUP BY via sbRpc untuk performa yang benar di scale besar (BELUM)
+  ☐ Extend normalizeRekening: tambah alias Seabank, Blu BCA, dll saat ada laporan akun duplikat di production (BELUM)
+
+  [SECURITY]
+  DONE -> Shared secret messaging-service ↔ finance-service (INTERNAL_API_KEY)
+      - Guard middleware di finance-service/src/index.js; tolak 401 jika key diset + header x-api-key tidak cocok. /health tetap terbuka.
+      - messaging-service + testing-service/runner.js kirim header otomatis jika INTERNAL_API_KEY ada di .env. Unset = guard nonaktif (dev/test).
 
   [CONTAINERIZATION]
   ☐ Create Docker Compose Configuration
@@ -494,7 +504,7 @@ TO-DO : MONETIZATION
 ================================ */
 /*
   [LIMIT INPUT]
-  ☐ Setiap freemium user akan dapat input limit 40
+  DONE ->Setiap freemium user akan dapat input limit 200
   ☐ Setiap paid user unlock all feature dan no minimum limit input
 
   [USER PLAN MANAGEMENT] 

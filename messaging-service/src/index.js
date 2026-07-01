@@ -16,6 +16,7 @@ const qrcode = require("qrcode-terminal");
 // ================================
 const FINANCE_SERVICE_URL = process.env.FINANCE_SERVICE_URL;
 const SESSION_NAME = process.env.SESSION_NAME || "wa-finance-bot";
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY; // must match finance-service
 
 if (!FINANCE_SERVICE_URL) {
   console.error(
@@ -128,7 +129,10 @@ async function forwardToFinanceService(sender, body) {
       `${FINANCE_SERVICE_URL}/process`,
       { from: sender, body },
       {
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(INTERNAL_API_KEY ? { "x-api-key": INTERNAL_API_KEY } : {}),
+        },
         timeout: 30000,
       }
     );

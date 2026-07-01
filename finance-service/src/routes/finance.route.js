@@ -24,6 +24,7 @@ const {
   generateTrxId,
   formatRupiah,
   getPeriodeGajian,
+  summarizeRecords,
 } = require("../utils/helpers");
 const { checkAuth } = require("../middleware/auth.middleware");
 const {
@@ -50,8 +51,23 @@ function validateIntent(ai) {
     case "CHECK_BALANCE":
       if (!ai.rek) return "nama rekening tidak terdeteksi";
       break;
+    case "MULTI":
+      if (!Array.isArray(ai.items) || ai.items.length === 0)
+        return "items multi kosong";
+      break;
   }
   return null;
+}
+
+// ================================
+// Record one INCOME/OUTCOME (shared by ADD_TRANSACTION + MULTI)
+// ================================
+async function recordAdd(userId, item, pesan) {
+  const trxId = generateTrxId();
+  const rekening = normalizeRekening(item.rek || "Cash");
+  await insertTransaksi(userId, trxId, item.type, item.cat, item.amt, rekening, pesan);
+  await updateSaldo(userId, item.type, item.amt, rekening);
+  return { trxId, type: item.type, cat: item.cat, amt: item.amt, rekening };
 }
 
 // ================================
@@ -280,7 +296,6 @@ router.post("/process", async (req, res) => {
 
       // ── CATAT TRANSAKSI ─────────────────────────
       case "ADD_TRANSACTION": {
-        const trxId = generateTrxId();
         const periode = getPeriodeGajian(new Date());
 
         // Input limit check (parallel queries)
@@ -294,24 +309,69 @@ router.post("/process", async (req, res) => {
           });
         }
 
-        const rekening = normalizeRekening(ai.rek || "Cash");
-        await insertTransaksi(userId, trxId, ai.type, ai.cat, ai.amt, rekening, pesanTrim);
-        await updateSaldo(userId, ai.type, ai.amt, rekening);
+        const rec = await recordAdd(userId, { type: ai.type, cat: ai.cat, amt: ai.amt, rek: ai.rek }, pesanTrim);
 
         let reply =
           "📝 *Catatan Keuangan*\n" +
           "━━━━━━━━━━━━━━\n" +
-          `ℹ️ *ID:* ${trxId}\n` +
-          `↔️ *Tipe:* ${ai.type}\n` +
-          `📂 *Kategori:* ${ai.cat}\n` +
-          `💰 *Jumlah:* Rp ${formatRupiah(ai.amt)}\n` +
-          `💳 *Rekening:* ${rekening}\n` +
+          `ℹ️ *ID:* ${rec.trxId}\n` +
+          `↔️ *Tipe:* ${rec.type}\n` +
+          `📂 *Kategori:* ${rec.cat}\n` +
+          `💰 *Jumlah:* Rp ${formatRupiah(rec.amt)}\n` +
+          `💳 *Rekening:* ${rec.rekening}\n` +
           "━━━━━━━━━━━━━━\n" +
           "Tercatat ✅";
 
         // Append budget progress for OUTCOME if budget is set
-        if (ai.type === "OUTCOME") {
-          const budgetInfo = await getBudgetProgress(userId, ai.cat, periode.start, periode.end);
+        if (rec.type === "OUTCOME") {
+          const budgetInfo = await getBudgetProgress(userId, rec.cat, periode.start, periode.end);
+          if (budgetInfo) reply += `\n${budgetInfo}`;
+        }
+
+        return res.json({ reply });
+      }
+
+      // ── MULTI TRANSAKSI (beberapa input dalam 1 pesan) ──
+      case "MULTI": {
+        const periode = getPeriodeGajian(new Date());
+        // ponytail: MULTI items are INCOME/OUTCOME only; transfer-in-multi not supported yet
+        const items = (ai.items || []).filter(
+          (it) => Number(it.amt) > 0 && (it.type === "INCOME" || it.type === "OUTCOME")
+        );
+        if (items.length === 0) {
+          return res.json({ reply: "Bukan Track Keuangan! beep boop 🤖" });
+        }
+
+        const [txCount, inputLimit] = await Promise.all([
+          getTransactionCount(userId, periode.start, periode.end),
+          getInputLimit(userId),
+        ]);
+        if (txCount + items.length > inputLimit) {
+          return res.json({
+            reply: `⚠️ Batas input periode ini (${inputLimit} transaksi) akan terlampaui (${txCount}+${items.length}).\n\nUpgrade ke premium untuk input tanpa batas.`,
+          });
+        }
+
+        const records = [];
+        for (const it of items) records.push(await recordAdd(userId, it, pesanTrim));
+
+        const { income, outcome } = summarizeRecords(records);
+        let reply =
+          `📝 *Catatan Keuangan (${records.length} transaksi)*\n` +
+          "━━━━━━━━━━━━━━\n";
+        records.forEach((r, i) => {
+          const icon = r.type === "INCOME" ? "🟢" : "🔴";
+          reply += `${i + 1}. ${icon} ${r.cat} Rp ${formatRupiah(r.amt)} (${r.rekening}) — ${r.trxId}\n`;
+        });
+        reply += "━━━━━━━━━━━━━━\n";
+        if (income > 0) reply += `🟢 Total Masuk: Rp ${formatRupiah(income)}\n`;
+        if (outcome > 0) reply += `🔴 Total Keluar: Rp ${formatRupiah(outcome)}\n`;
+        reply += "Tercatat ✅";
+
+        // Budget progress per unique OUTCOME category
+        const outcomeCats = [...new Set(records.filter((r) => r.type === "OUTCOME").map((r) => r.cat))];
+        for (const cat of outcomeCats) {
+          const budgetInfo = await getBudgetProgress(userId, cat, periode.start, periode.end);
           if (budgetInfo) reply += `\n${budgetInfo}`;
         }
 

@@ -8,6 +8,7 @@
     "test:part2": "node runner.js part2",
     "test:part3": "node runner.js part3",
     "test:quick": "node runner.js quick",
+    "test:unit":  "node unit.test.js",
     "reset":      "node reset-user.js"
   },
   "dependencies": {

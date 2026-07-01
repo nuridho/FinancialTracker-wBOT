@@ -22,40 +22,49 @@ User WA ──► messaging-service ──HTTP──► finance-service ──�
 ```
 src/
 ├── config/
-│   └── index.js              # semua env var terpusat
+│   └── index.js              # semua env var terpusat + validateConfig() (fail-fast saat startup)
 ├── middleware/
-│   └── auth.middleware.js    -> check verification status
+│   └── auth.middleware.js    # checkAuth() — lookup user by WA number, bypass DB jika TEST_WA_NUMBER cocok
 ├── modules/
 │   ├── ai/
-│   │   └── ai.service.js     # OpenRouter classifier + model fallback
+│   │   └── ai.service.js     # classifyMessage() + generateInsight() — OpenRouter classifier + model fallback
 │   ├── account/
-│   │   └── account.service.js  # getSaldo, getAllSaldo, updateSaldo
-|   ├── auth/
-|   |   └── auth.service.js -> handle flow REQUEST_EMAIL → SEND_CODE → VERIFY
-|   ├── email/
-|   |   └── email.service.js -> kirim email via Resend
+│   │   └── account.service.js  # getSaldo, getAllSaldo, updateSaldo, accountExists, resyncBalances
+│   ├── auth/
+│   │   ├── auth.service.js   # flow REQUEST_EMAIL → SEND_CODE → VERIFY
+│   │   └── rate-limit.js     # in-memory limiter: 3 email/menit, 5 verify/menit
+│   ├── budget/
+│   │   └── budget.service.js # setBudget, getBudgetProgress — budget per kategori
+│   ├── email/
+│   │   └── email.service.js  # kirim verification code via Resend
 │   ├── recap/
-│   │   └── recap.service.js  # generateRekap
+│   │   └── recap.service.js  # generateRekap + AI insight (cache 1 jam)
 │   ├── transaction/
-│   │   └── transaction.service.js  # insertTransaksi, normalizeRekening
+│   │   └── transaction.service.js  # insertTransaksi, normalizeRekening, delete+rollback, getTransactionCount
 │   └── user/
-│       └── user.service.js   # getCurrentUserId (hardcode → WA auth nanti)
+│       └── user.service.js   # getInputLimit — baca input_limit dari tabel users (default 200)
 ├── routes/
-│   └── finance.route.js      # POST /process, GET /health
+│   └── finance.route.js      # POST /process (rule-based intercept + AI dispatch + MULTI), GET /health
 ├── utils/
-│   ├── helpers.js            # formatRupiah, formatTanggalIndo, dll.
-│   └── supabase.js           # sbGet, sbPost, sbRpc
-└── index.js
+│   ├── helpers.js            # formatRupiah, getPeriodeGajian, generateTrxId, summarizeRecords
+│   └── supabase.js           # sbGet, sbPost, sbUpsert, sbDelete, sbRpc, sbCount
+└── index.js                  # bootstrap Express + guard INTERNAL_API_KEY + mount route
 
 Supabase/
-├── scheme.sql/ -> struktur tabel
-└── setup.md -> how to initiate supabase
+├── schema.sql   # struktur tabel + PostgreSQL functions
+└── setup.md     # panduan inisialisasi Supabase
 
 ```
 
 ## API finance-service
 
 ### `POST /process`
+Header (opsional, wajib jika `INTERNAL_API_KEY` diset di finance-service):
+```
+x-api-key: <INTERNAL_API_KEY>
+```
+Tanpa header yang cocok saat key aktif → `401 Unauthorized`. `/health` selalu terbuka.
+
 Body:
 ```json
 { "from": "628123456789", "body": "Makan siang 25rb" }
@@ -73,10 +82,10 @@ Response:
 
 **Flow per pesan:**
 1. User kirim pesan WhatsApp
-2. Baileys terima → extract teks → POST ke Apps Script webhook
-3. Apps Script kirim ke OpenRouter untuk klasifikasi intent
-4. Jika intent valid & confidence ≥ 70% → eksekusi ke Supabase
-5. Response dikirim balik ke user via Baileys
+2. messaging-service (Baileys) terima → extract teks → `POST /process` ke finance-service (header `x-api-key` jika key aktif)
+3. finance-service coba rule-based intercept dulu (undo/delete/resync/budget); jika tidak cocok → OpenRouter untuk klasifikasi intent
+4. Jika intent valid & confidence ≥ 70% → eksekusi ke Supabase (MULTI = catat beberapa transaksi sekaligus)
+5. Response `{ reply }` dikirim balik ke user via Baileys
 
 ---
 
@@ -105,6 +114,7 @@ Core features required before the first public release.
 | AI Fallback Chain                        | ✅ Done    |
 | Supabase Integration                     | ✅ Done    |
 | Multi-user Database Schema               | ✅ Done    |
+| Internal API Key (messaging ↔ finance)   | ✅ Done    |
 | Email Verification                       | ✅ Done |
 | Authentication Middleware                | ✅ Done |
 | WhatsApp Session Binding                 | ✅ Done |
@@ -130,7 +140,7 @@ Important improvements after the public beta.
 | Freemium Input Limit        | ✅ Done    |
 | AI Weekly Report            | ⏳ Planned |
 | Top Spending Category       | ⏳ Planned |
-| Multi Transaction Input     | ⏳ Planned |
+| Multi Transaction Input     | ✅ Done    |
 | PDF Report Monthly          | ⏳ Planned |
 | Comprehensive Testing       | ⏳ Planned |
 | Better Error Handling       | ⏳ Planned |
@@ -217,7 +227,7 @@ git push
 ### 1. Supabase — Setup Database
 
 1. Buat project baru di [supabase.com](https://supabase.com)
-2. Buka **SQL Editor**, paste & run isi `supabase/supabase_setup.sql`
+2. Buka **SQL Editor**, paste & run isi `finance-service/Supabase/schema.sql`
 3. Verifikasi: semua tabel terbuat (`users`, `wa_sessions`, `accounts`, `transactions`)
 4. Buka **Settings → API**, copy:
    - **Project URL** → untuk `SUPABASE_URL`
@@ -229,39 +239,53 @@ insert into users (name, email, is_verified)
 values ('Nama Kamu', 'kamu@email.com', true)
 returning id;
 ```
-Simpan UUID yang muncul — dipakai di Apps Script.
+Simpan UUID yang muncul — dipakai sebagai `TEST_USER_ID` di `finance-service/.env` untuk testing.
 
 > ⚠️ **Free tier note:** Project otomatis pause setelah 7 hari tidak aktif. Setup ping cron jika diperlukan.
 
 ---
 
-### 3. OpenRouter — Setup AI
+### 2. OpenRouter — Setup AI
 
 1. Daftar di [openrouter.ai](https://openrouter.ai)
 2. Buka **Keys → Create key**
-3. Copy API key → paste ke `OPENROUTER_API_KEY` di `Code.gs`
+3. Copy API key → paste ke `OPENROUTER_API_KEY` di `finance-service/.env`
 
 Model fallback chain sudah terkonfigurasi otomatis. Tidak perlu bayar — semua model yang dipakai adalah free tier.
 
 ---
 
-### 4. NodeJS Baileys — Setup WhatsApp Bridge
+### 3. finance-service — Jalankan Business Logic
 
 ```bash
-cd nodejs-baileys
+cd finance-service
+npm install
+cp .env.example .env      # isi SUPABASE_URL, SUPABASE_KEY, OPENROUTER_API_KEY, RESEND_API_KEY
+npm start                 # atau: npm run dev (nodemon)
+```
+
+Sebelum expose ke publik, isi `INTERNAL_API_KEY` (lihat komentar di `.env.example` untuk cara generate).
+
+---
+
+### 4. messaging-service — Setup WhatsApp Bridge
+
+```bash
+cd messaging-service
 npm install
 cp .env.example .env
 ```
 
 Isi `.env`:
 ```env
-APPS_SCRIPT_URL=https://script.google.com/macros/s/XXXXXXXX/exec
-SESSION_NAME=git-finance
+FINANCE_SERVICE_URL=http://localhost:3001
+SESSION_NAME=wa-finance-bot
+INTERNAL_API_KEY=            # kosongkan untuk dev; samakan dengan finance-service jika key aktif
 ```
 
 Jalankan bot:
 ```bash
-node index.js
+npm start
 ```
 
 Scan QR code yang muncul di terminal menggunakan WhatsApp → **Linked Devices → Link a Device**.
@@ -288,7 +312,10 @@ npm run test:part1   # Section A-E (32 kasus) — Income/Outcome/Switch/Balance
 npm run test:part2   # Section F-I (25 kasus) — Recap/Ambiguous/General/Security
 npm run test:part3   # Section J-L (9 kasus) — Undo/Resync/Budget (jalankan setelah part1)
 npm run test:quick   # 2 kasus cepat untuk sanity check
+npm run test:unit    # assert pure-logic offline (parseCount, summarizeRecords) — tanpa server/AI/DB
 ```
+
+> Catatan: jika `INTERNAL_API_KEY` diset di `finance-service/.env`, isi juga di `testing-service` (env yang sama) supaya runner mengirim header `x-api-key`. Kalau tidak, semua request kena `401`.
 
 **Test coverage:**
 
@@ -377,6 +404,7 @@ Semua model **gratis** via OpenRouter free tier.
 ```
 Makan 50rb gopay              → ✅ OUTCOME Rp 50.000 · Makan · GoPay (+ budget progress jika diset)
 Gajian 7.5jt ke BCA           → ✅ INCOME Rp 7.500.000 · Gaji · BCA
+warteg 25rb bca bensin 50k gopay → 📝 MULTI: 2 transaksi sekaligus + total keluar (INCOME/OUTCOME saja)
 Transfer 500rb BCA ke Dana    → 🔄 SWITCH Rp 500.000 (jika Dana ada di akun) / OUTCOME (jika tidak)
 saldo BCA                     → 💰 Saldo BCA: Rp X.XXX.XXX
 keuangan gue gimana           → 💰 Ringkasan semua rekening

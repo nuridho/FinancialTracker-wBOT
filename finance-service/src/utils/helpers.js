@@ -15,12 +15,10 @@ function formatRupiah(x) {
 /**
  * Format a Date as "D Mon YYYY" in Indonesian.
  */
+// ponytail: Intl needs full-icu (Node 13+ default). If output looks English, add --icu-data-dir or switch back.
+const _tanggalFmt = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" });
 function formatTanggalIndo(d) {
-  const bulan = [
-    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-    "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
-  ];
-  return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
+  return _tanggalFmt.format(d);
 }
 
 function generateTrxId() {
@@ -54,4 +52,20 @@ function getPeriodeGajian(refDate = new Date()) {
   return { start, end };
 }
 
-module.exports = { formatRupiah, formatTanggalIndo, generateTrxId, getPeriodeGajian };
+/**
+ * Sum INCOME vs OUTCOME totals from recorded transactions.
+ * @param {Array<{type:string, amt:number}>} records
+ * @returns {{income:number, outcome:number}}
+ */
+function summarizeRecords(records) {
+  return records.reduce(
+    (acc, r) => {
+      if (r.type === "INCOME") acc.income += Number(r.amt) || 0;
+      else acc.outcome += Number(r.amt) || 0;
+      return acc;
+    },
+    { income: 0, outcome: 0 }
+  );
+}
+
+module.exports = { formatRupiah, formatTanggalIndo, generateTrxId, getPeriodeGajian, summarizeRecords };

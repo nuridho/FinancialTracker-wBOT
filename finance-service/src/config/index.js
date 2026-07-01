@@ -6,6 +6,10 @@ const config = {
   paydayDate: parseInt(process.env.PAYDAY_DATE || "28", 10),
   confidenceThreshold: parseInt(process.env.CONFIDENCE_THRESHOLD || "70", 10),
 
+  // Shared secret between messaging-service and finance-service.
+  // Empty = guard disabled (dev/test). Set in prod to require x-api-key header.
+  internalApiKey: process.env.INTERNAL_API_KEY || "",
+
   supabase: {
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_KEY,
