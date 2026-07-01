@@ -198,6 +198,15 @@ router.post("/process", async (req, res) => {
       });
     }
 
+    // Rekap mingguan — rolling 7 hari mundur, no AI token
+    if (/^rekap\s+mingguan$|^rekap\s+7\s+hari$/i.test(pesanTrim)) {
+      const end = new Date();
+      const start = new Date(end - 7 * 24 * 60 * 60 * 1000);
+      start.setHours(0, 0, 0, 0);
+      const reply = await generateRekap(userId, start, end);
+      return res.json({ reply: reply.replace("📊 *Rekap Periode*", "📊 *Rekap Mingguan*") });
+    }
+
     // ================================
     // FINANCIAL LOGIC — AI classification
     // ================================

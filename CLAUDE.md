@@ -34,9 +34,9 @@ npm start              # scan QR with WhatsApp → Linked Devices
 
 # testing-service (finance-service must be running first)
 cd testing-service
-npm test               # all 66 test cases
+npm test               # all 67 test cases
 npm run test:part1     # Section A–E: Income/Outcome/Switch/Balance (32 cases)
-npm run test:part2     # Section F–I: Recap/Ambiguous/General/Security (25 cases)
+npm run test:part2     # Section F–I: Recap/Ambiguous/General/Security (26 cases)
 npm run test:part3     # Section J–L: Undo/Delete/Resync/Budget (9 cases) — run after part1
 npm run test:quick     # 2 cases — fast sanity check
 npm run test:unit      # offline pure-logic asserts (no server/AI/DB needed)
@@ -57,6 +57,7 @@ User WA → messaging-service → POST /process {from, body} → finance-service
                                            resync / sync saldo / rebuild saldo → resyncBalances
                                            set budget [cat] [num] → setBudget
                                            budget [cat] → getBudgetProgress
+                                           rekap mingguan / rekap 7 hari → generateRekap (rolling 7d)
                                         3. AI classify (classifyMessage) ── OpenRouter 7-model fallback
                                         4. Intent validate (validateIntent)
                                         5. Confidence < 70% → Safe Mode (ask user to confirm)
@@ -107,6 +108,7 @@ Regex patterns in `finance.route.js:91–109` handle steps 1–2 before reaching
 All DB calls go through `sbGet`/`sbPost`/`sbRpc` in `utils/supabase.js` using the **service_role key** (bypasses RLS). Complex operations are PostgreSQL functions called via `sbRpc`:
 
 - `upsert_account_balance(user_id, name, delta)` — atomic saldo update
+- `delete_transaction_with_rollback(user_id, trx_id)` — find + reverse balance + delete in one PG transaction; returns deleted row or empty
 - `get_user_by_wa(wa_number)` — returns `{user_id, is_verified, ...}`
 - `generate_auth_code(wa_number)` — writes 6-digit code + 10-min expiry to `wa_sessions`
 - `verify_auth_code(wa_number, code)` — validates + one-time use + sets `is_active=true`
@@ -124,6 +126,9 @@ All DB calls go through `sbGet`/`sbPost`/`sbRpc` in `utils/supabase.js` using th
 - **Multi-input**: One message can hold several transactions ("warteg 25rb bca bensin 50k gopay"). AI returns `MULTI`; each item recorded via shared `recordAdd()`. Reply lists every leg + total masuk/keluar, and appends budget progress per unique OUTCOME category.
 - **Internal API key**: `INTERNAL_API_KEY` (env). When set, finance-service rejects `/process` without matching `x-api-key` header (guard in `index.js`). Unset = open (dev/test). messaging-service and test runner send it automatically when present. `/health` always open.
 - **Budget**: Stored in `budgets (user_id, category, amount)` table. Set via `set budget [cat] [num]`, check via `budget [cat]`. Progress appended automatically after every OUTCOME.
+- **Rekap mingguan**: Rule-based intercept in `finance.route.js` — matches "rekap mingguan" / "rekap 7 hari". Computes `start = 7 days ago 00:00:00`, `end = now`, calls `generateRekap`. Title replaced "Rekap Periode" → "Rekap Mingguan". Same cache key as its time range, so repeated calls within 1h are instant.
+- **Top Spending**: `recap.service.js` adds 🥇🥈🥉 medals to the top 3 categories in the breakdown. 4th and beyond get ▪️.
+- **Delete atomicity**: `deleteTransactionWithRollback` now delegates entirely to `delete_transaction_with_rollback` RPC — balance reversal + paired-leg delete + main delete happen in a single PG transaction. No partial rollback risk on crash.
 - **AI Insight Cache**: In-memory Map in `ai.service.js`, TTL 1 hour, keyed by `userId:startISO:endISO`. First recap call adds ~5–30s latency; subsequent calls are instant until TTL expires or server restarts.
 
 ## Branch Strategy
@@ -155,8 +160,8 @@ TEST_USER_ID=<uuid from users table>
 ## Code Quality Notes (from codebase review)
 
 - ~~`getTransactionCount` pulls rows to count~~ → **FIXED**: now `sbCount` (HEAD + `count=exact`), zero rows fetched.
+- ~~`deleteTransactionWithRollback` non-atomic~~ → **FIXED**: delegated to `delete_transaction_with_rollback` RPC — single PG transaction, no partial-rollback risk.
 - `recap.service.js:generateRekap` — aggregates all transactions in-memory (JS loop). Fine for personal finance scale, but a SQL `GROUP BY` query would be more correct. Not yet done.
-- `transaction.service.js:deleteTransactionWithRollback` — two sequential `sbDelete` calls with no atomicity. If server crashes between them, balances can desync (partial rollback). Fix: move both deletes into a single Supabase RPC/transaction. Run `resync` as recovery for now. Not yet done.
 - `transaction.service.js:normalizeRekening` — hardcoded alias map. New banks (Seabank, Blu BCA, etc.) silently pass through as-is and create duplicate account entries. Add when alias mismatches show up in production logs. Not yet done.
 
 ## Session Changelog (progress across sessions)
@@ -166,3 +171,8 @@ TEST_USER_ID=<uuid from users table>
   2. **Internal API key guard** — `INTERNAL_API_KEY` shared secret. Files: `config/index.js`, `finance-service/src/index.js` (guard middleware), `messaging-service/src/index.js` + `testing-service/runner.js` (send header when set).
   3. **Server-side count** — `sbCount` (HEAD + `count=exact`) in `supabase.js`; `getTransactionCount` no longer pulls rows.
   - Check: `testing-service/unit.test.js` (`npm run test:unit`) asserts `parseCount` + `summarizeRecords` offline.
+- **2026-07 — 3 new features shipped** (branch `dev`):
+  1. **Delete atomicity** — `delete_transaction_with_rollback` PostgreSQL function in `schema.sql`. JS side (`transaction.service.js`) replaced 6-step sequential logic with single `sbRpc` call. `sbDelete` removed from imports.
+  2. **Top Spending medals** — `recap.service.js` adds 🥇🥈🥉 to top 3 OUTCOME categories in breakdown; 4th+ get ▪️. No new function, 3-line diff.
+  3. **Rekap Mingguan** — rule-based intercept in `finance.route.js` for "rekap mingguan" / "rekap 7 hari". Reuses `generateRekap` with rolling 7-day window. Test F5 added to `runner.js` (PART2 now 26 kasus).
+  - Schema note: run `delete_transaction_with_rollback` function block from `schema.sql` in Supabase SQL Editor to activate feature 1.

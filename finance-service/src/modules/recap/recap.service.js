@@ -44,11 +44,12 @@ async function generateRekap(userId, start, end) {
 
   const kategoriList = Object.keys(perKategori);
   if (kategoriList.length > 0) {
+    const medals = ["🥇", "🥈", "🥉"];
     output += "━━━━━━━━━━━━━━\n*Breakdown Pengeluaran:*\n";
     kategoriList
       .sort((a, b) => perKategori[b] - perKategori[a])
-      .forEach((kat) => {
-        output += `▪️ ${kat}: Rp ${formatRupiah(perKategori[kat])}\n`;
+      .forEach((kat, i) => {
+        output += `${medals[i] || "▪️"} ${kat}: Rp ${formatRupiah(perKategori[kat])}\n`;
       });
   }
 

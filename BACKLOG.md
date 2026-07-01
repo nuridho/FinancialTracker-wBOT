@@ -22,8 +22,8 @@
 | 9 | TRANSACTION | Rebuild / Sync Saldo Rekening — `resyncBalances()` memanggil SQL function `resync_balances`; dipicu via `resync` / `sync saldo` / `rebuild saldo` | ✅ Done |
 | 10 | ACCOUNT MANAGEMENT | Switch Uang Antar Rekening — TRANSFER intent dicek: `rek_to` ada di DB → SWITCH 2 baris type=SWITCH tidak masuk rekap; `rek_to` tidak ada → OUTCOME dari `rek_from` saja | ✅ Done |
 | 11 | BUDGETING | Budget Per Kategori — set via `set budget [cat] [nominal]`, cek via `budget [cat]`, progress otomatis tampil setelah setiap OUTCOME | ✅ Done |
-| 12 | ANALYTICS | Top Spending Category | ⏳ Planned |
-| 13.1 | REPORTING | Rekap Mingguan | ⏳ Planned |
+| 12 | ANALYTICS | Top Spending Category — 🥇🥈🥉 medals pada top 3 kategori di breakdown rekap | ✅ Done |
+| 13.1 | REPORTING | Rekap Mingguan — rolling 7 hari mundur, rule-based intercept (no AI), reuse generateRekap | ✅ Done |
 | 13.2 | REPORTING | Monthly PDF Report — chart per kategori + AI insight + rekomendasi konkret | ⏳ Planned |
 | 14 | REPORTING | AI Insight Rekap Bulanan — `generateInsight()` dipanggil setelah `generateRekap()`, di-cache in-memory 1 jam per user per periode | ✅ Done |
 | 15 | AI OPTIMIZATION | Intent Router — undo/delete/resync/budget/check-balance dicegat via regex sebelum `classifyMessage()` | ✅ Done |
@@ -505,7 +505,7 @@ INDEX:
 
 - [ ] Refactor transaction service
   - `getTransactionCount` ✅ Done — pakai `sbCount` = HEAD + `count=exact`, tidak pull rows ke memory
-  - `deleteTransactionWithRollback` — dua `sbDelete` sequential tidak atomic → partial rollback jika crash; pindahkan ke Supabase RPC transaction. Sementara: gunakan `resync` sebagai recovery
+  - `deleteTransactionWithRollback` ✅ Done — kini delegasi ke RPC `delete_transaction_with_rollback`; balance reversal + paired-leg delete + main delete dalam satu PG transaction
 - [ ] Refactor account service
 - [ ] Improve error handling — mengurangi crash dan memperjelas penyebab error
 - [ ] Centralized logger — mempermudah debugging dan monitoring aplikasi

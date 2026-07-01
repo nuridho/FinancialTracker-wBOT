@@ -235,6 +235,72 @@ begin
 end;
 $$;
 
+-- Atomic delete + balance rollback in a single PostgreSQL transaction.
+-- Returns the deleted main row; empty result = trx_id not found.
+create or replace function delete_transaction_with_rollback(
+  p_user_id uuid,
+  p_trx_id  text
+)
+returns table (
+  trx_id       text,
+  type         text,
+  category     text,
+  amount       numeric,
+  account_name text
+)
+language plpgsql as $$
+declare
+  v_trx       record;
+  v_paired    record;
+  v_paired_id text;
+  v_delta     numeric;
+begin
+  select * into v_trx
+  from transactions
+  where user_id = p_user_id and trx_id = p_trx_id
+  limit 1;
+
+  if not found then
+    return;
+  end if;
+
+  -- Find paired leg for SWITCH / Transfer category
+  if v_trx.type = 'SWITCH' or v_trx.category = 'Transfer' then
+    v_paired_id := case
+      when v_trx.trx_id like '%-TO' then left(v_trx.trx_id, length(v_trx.trx_id) - 3)
+      else v_trx.trx_id || '-TO'
+    end;
+    select * into v_paired
+    from transactions
+    where user_id = p_user_id and trx_id = v_paired_id
+    limit 1;
+  end if;
+
+  -- Reverse balance for main leg
+  v_delta := case
+    when v_trx.type = 'SWITCH' and v_trx.trx_id like '%-TO' then -v_trx.amount
+    when v_trx.type = 'SWITCH'                               then  v_trx.amount
+    when v_trx.type = 'INCOME'                               then -v_trx.amount
+    else                                                           v_trx.amount
+  end;
+  perform upsert_account_balance(p_user_id, v_trx.account_name, v_delta);
+
+  -- Reverse balance for paired SWITCH leg (if found)
+  if v_paired.trx_id is not null then
+    v_delta := case
+      when v_paired.trx_id like '%-TO' then -v_paired.amount
+      else                                   v_paired.amount
+    end;
+    perform upsert_account_balance(p_user_id, v_paired.account_name, v_delta);
+    delete from transactions where user_id = p_user_id and trx_id = v_paired.trx_id;
+  end if;
+
+  delete from transactions where user_id = p_user_id and trx_id = v_trx.trx_id;
+
+  return query select v_trx.trx_id, v_trx.type, v_trx.category, v_trx.amount, v_trx.account_name;
+end;
+$$;
+
 -- ================================================================
 -- ROW LEVEL SECURITY
 -- ================================================================

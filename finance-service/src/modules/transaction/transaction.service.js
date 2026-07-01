@@ -1,4 +1,4 @@
-const { sbGet, sbPost, sbDelete, sbRpc, sbCount } = require("../../utils/supabase");
+const { sbGet, sbPost, sbRpc, sbCount } = require("../../utils/supabase");
 
 /**
  * Insert a single transaction row.
@@ -68,43 +68,15 @@ async function getLastTransaction(userId) {
 
 /**
  * Delete a transaction (and its transfer pair if applicable) and reverse the balance impact.
+ * Atomic — runs in a single PostgreSQL transaction via RPC.
  * Returns the deleted main transaction, or null if not found.
  */
 async function deleteTransactionWithRollback(userId, trxId) {
-  const rows = await sbGet("transactions", `user_id=eq.${userId}&trx_id=eq.${trxId}`);
-  if (!rows || rows.length === 0) return null;
-
-  const trx = rows[0];
-  const toDelete = [trx];
-
-  // SWITCH and old Transfer rows both have a paired leg — find and include it
-  if (trx.type === "SWITCH" || trx.category === "Transfer") {
-    const pairedId = trx.trx_id.endsWith("-TO")
-      ? trx.trx_id.slice(0, -3)
-      : trx.trx_id + "-TO";
-    const paired = await sbGet("transactions", `user_id=eq.${userId}&trx_id=eq.${pairedId}`);
-    if (paired && paired.length > 0) toDelete.push(paired[0]);
-  }
-
-  // Reverse balance for each leg
-  for (const t of toDelete) {
-    // ponytail: SWITCH both legs share type=SWITCH, so use -TO suffix to tell direction
-    const delta = t.type === "SWITCH"
-      ? (t.trx_id.endsWith("-TO") ? -Number(t.amount) : Number(t.amount))
-      : (t.type === "INCOME" ? -Number(t.amount) : Number(t.amount));
-    await sbRpc("upsert_account_balance", {
-      p_user_id: userId,
-      p_name: t.account_name,
-      p_delta: delta,
-    });
-  }
-
-  // Delete the row(s)
-  for (const t of toDelete) {
-    await sbDelete("transactions", `user_id=eq.${userId}&trx_id=eq.${t.trx_id}`);
-  }
-
-  return trx;
+  const result = await sbRpc("delete_transaction_with_rollback", {
+    p_user_id: userId,
+    p_trx_id: trxId,
+  });
+  return result?.[0] || null;
 }
 
 /**

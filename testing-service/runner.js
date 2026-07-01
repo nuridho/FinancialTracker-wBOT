@@ -274,10 +274,12 @@ const PART1 = [
 
 const PART2 = [
   // ══ SECTION F — GET_RECAP ════════════════════════════════════
-  { pesan: "rekap bulan ini",                                expect: "Rekap Periode", label: "F1 Recap - standar" },
-  { pesan: "laporan keuangan dong",                          expect: "Rekap Periode", label: "F2 Recap - laporan keuangan" },
-  { pesan: "summary pengeluaran gue",                        expect: "Rekap Periode", label: "F3 Recap - EN summary" },
-  { pesan: "bulan ini abis berapa",                          expect: "Rekap Periode", label: "F4 Recap - informal" },
+  { pesan: "rekap bulan ini",                                expect: "Rekap Periode",  label: "F1 Recap - standar" },
+  { pesan: "laporan keuangan dong",                          expect: "Rekap Periode",  label: "F2 Recap - laporan keuangan" },
+  { pesan: "summary pengeluaran gue",                        expect: "Rekap Periode",  label: "F3 Recap - EN summary" },
+  { pesan: "bulan ini abis berapa",                          expect: "Rekap Periode",  label: "F4 Recap - informal" },
+  // F5: rule-based intercept, no AI call, rolling 7 hari mundur
+  { pesan: "rekap mingguan",                                 expect: "Rekap Mingguan", label: "F5 Rekap Mingguan - 7 hari mundur" },
 
   // ══ SECTION G — AMBIGUOUS (no amount) ════════════════════════
   { pesan: "Saya habis makan sushi",                         expect: "Bukan Track Keuangan", label: "G1 Ambiguous - habis makan tanpa nominal" },
@@ -356,12 +358,12 @@ async function main() {
 
   const tasks = {
     part1: () => runTests(PART1, "PART 1 (A-E) — 32 kasus"),
-    part2: () => runTests(PART2, "PART 2 (F-I) — 25 kasus"),
+    part2: () => runTests(PART2, "PART 2 (F-I) — 26 kasus"),
     part3: () => runTests(PART3, "PART 3 (J-L) — 9 kasus (jalankan setelah part1)"),
     quick: () => runTests(QUICK, "QUICK (Q)"),
     all: async () => {
       const r1 = await runTests(PART1, "PART 1 (A-E)");
-      const r2 = await runTests(PART2, "PART 2 (F-I)");
+      const r2 = await runTests(PART2, "PART 2 (F-I) — 26 kasus");
       const r3 = await runTests(PART3, "PART 3 (J-L)");
       const total = r1.pass + r2.pass + r3.pass;
       const totalFail = r1.fail + r2.fail + r3.fail;

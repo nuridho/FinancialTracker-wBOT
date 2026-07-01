@@ -138,8 +138,8 @@ Important improvements after the public beta.
 | AI Monthly Recap Insight    | ✅ Done    |
 | Budget per Category         | ✅ Done    |
 | Freemium Input Limit        | ✅ Done    |
-| AI Weekly Report            | ⏳ Planned |
-| Top Spending Category       | ⏳ Planned |
+| AI Weekly Report            | ✅ Done    |
+| Top Spending Category       | ✅ Done    |
 | Multi Transaction Input     | ✅ Done    |
 | PDF Report Monthly          | ⏳ Planned |
 | Comprehensive Testing       | ⏳ Planned |
@@ -309,7 +309,7 @@ cd testing-service
 npm run reset        # bersihkan transaksi, saldo, dan budget user test
 npm test             # semua 66 kasus (Part 1 + Part 2 + Part 3)
 npm run test:part1   # Section A-E (32 kasus) — Income/Outcome/Switch/Balance
-npm run test:part2   # Section F-I (25 kasus) — Recap/Ambiguous/General/Security
+npm run test:part2   # Section F-I (26 kasus) — Recap/Ambiguous/General/Security
 npm run test:part3   # Section J-L (9 kasus) — Undo/Resync/Budget (jalankan setelah part1)
 npm run test:quick   # 2 kasus cepat untuk sanity check
 npm run test:unit    # assert pure-logic offline (parseCount, summarizeRecords) — tanpa server/AI/DB
@@ -326,14 +326,14 @@ npm run test:unit    # assert pure-logic offline (parseCount, summarizeRecords) 
 | C | Switch antar rekening (rek_to ada di DB) | 5 |
 | D | Cek saldo spesifik | 4 |
 | E | Ringkasan semua saldo | 4 |
-| F | Rekap bulanan + AI insight | 4 |
+| F | Rekap bulanan + rekap mingguan + AI insight | 5 |
 | G | Ambiguous — tanpa nominal (wajib GENERAL) | 9 |
 | H | Non-finansial (wajib GENERAL) | 6 |
 | I | Prompt injection & security | 6 |
 | J | Undo transaksi terakhir & hapus by TRX ID | 3 |
 | K | Resync saldo dari histori transaksi | 3 |
 | L | Budget per kategori + progress setelah OUTCOME | 3 |
-| **Total** | | **68 kasus** |
+| **Total** | | **69 kasus** |
 
 ---
 
@@ -361,6 +361,7 @@ transactions
 
 **PostgreSQL functions:**
 - `upsert_account_balance(user_id, name, delta)` — atomic saldo update, hindari race condition
+- `delete_transaction_with_rollback(user_id, trx_id)` — hapus transaksi + reverse saldo + paired leg dalam satu PG transaction
 - `get_user_by_wa(wa_number)` — lookup user dari nomor WA
 - `generate_auth_code(wa_number)` — buat kode verifikasi 6 digit, valid 10 menit
 - `verify_auth_code(wa_number, code)` — validasi & one-time use
@@ -408,7 +409,8 @@ warteg 25rb bca bensin 50k gopay → 📝 MULTI: 2 transaksi sekaligus + total k
 Transfer 500rb BCA ke Dana    → 🔄 SWITCH Rp 500.000 (jika Dana ada di akun) / OUTCOME (jika tidak)
 saldo BCA                     → 💰 Saldo BCA: Rp X.XXX.XXX
 keuangan gue gimana           → 💰 Ringkasan semua rekening
-rekap bulan ini               → 📊 Rekap + 💡 AI Insight (cache 1 jam)
+rekap bulan ini               → 📊 Rekap + 🥇🥈🥉 Top 3 kategori + 💡 AI Insight (cache 1 jam)
+rekap mingguan                → 📊 Rekap Mingguan 7 hari mundur + Top 3 + AI Insight
 undo                          → 🗑️ Hapus transaksi terakhir + rollback saldo
 hapus TRX-XXXXXXXX           → 🗑️ Hapus transaksi spesifik by ID + rollback saldo
 resync                        → 🔄 Rebuild semua saldo dari histori transaksi
