@@ -32,11 +32,10 @@ function generateTrxId() {
  * @param {Date} [refDate=new Date()]
  * @returns {{ start: Date, end: Date }}
  */
-function getPeriodeGajian(refDate = new Date()) {
+function getPeriodeGajian(refDate = new Date(), payday = config.paydayDate) {
   const day = refDate.getDate();
   const month = refDate.getMonth();
   const year = refDate.getFullYear();
-  const payday = config.paydayDate;
 
   let start, end;
   if (day >= payday) {

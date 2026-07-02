@@ -207,6 +207,15 @@ router.post("/process", async (req, res) => {
       return res.json({ reply: reply.replace("📊 *Rekap Periode*", "📊 *Rekap Mingguan*") });
     }
 
+    // Rekap custom — "rekap dari tanggal 25" / "rekap tanggal 15", no AI token
+    const customRekapMatch = pesanTrim.match(/rekap.{0,15}tanggal\s+(\d{1,2})/i);
+    if (customRekapMatch) {
+      const tgl = Math.min(Math.max(parseInt(customRekapMatch[1], 10), 1), 28);
+      const periode = getPeriodeGajian(new Date(), tgl);
+      const reply = await generateRekap(userId, periode.start, periode.end);
+      return res.json({ reply });
+    }
+
     // ================================
     // FINANCIAL LOGIC — AI classification
     // ================================

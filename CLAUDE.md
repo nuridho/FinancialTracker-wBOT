@@ -58,6 +58,7 @@ User WA → messaging-service → POST /process {from, body} → finance-service
                                            set budget [cat] [num] → setBudget
                                            budget [cat] → getBudgetProgress
                                            rekap mingguan / rekap 7 hari → generateRekap (rolling 7d)
+                                           rekap dari tanggal N / rekap tanggal N → generateRekap (custom payday, 1–28)
                                         3. AI classify (classifyMessage) ── OpenRouter 7-model fallback
                                         4. Intent validate (validateIntent)
                                         5. Confidence < 70% → Safe Mode (ask user to confirm)
@@ -130,6 +131,28 @@ All DB calls go through `sbGet`/`sbPost`/`sbRpc` in `utils/supabase.js` using th
 - **Top Spending**: `recap.service.js` adds 🥇🥈🥉 medals to the top 3 categories in the breakdown. 4th and beyond get ▪️.
 - **Delete atomicity**: `deleteTransactionWithRollback` now delegates entirely to `delete_transaction_with_rollback` RPC — balance reversal + paired-leg delete + main delete happen in a single PG transaction. No partial rollback risk on crash.
 - **AI Insight Cache**: In-memory Map in `ai.service.js`, TTL 1 hour, keyed by `userId:startISO:endISO`. First recap call adds ~5–30s latency; subsequent calls are instant until TTL expires or server restarts.
+
+## Dokumentasi Proyek
+
+Dokumentasi lengkap bernomor ada di **`n8n-migration/`** (flat, satu urutan): 01–11 = pengetahuan proyek (overview, arsitektur, roles, auth, database, admin, API, roadmap, future features, mobile), 12–14 = bahan eksekusi migrasi n8n (prasyarat, workflow design, init database SQL lengkap). Index: `n8n-migration/README.md`. Aturan: dokumen menunjuk sumber kebenaran (BACKLOG.md, schema/SQL), bukan menyalinnya — update sumbernya dulu, dokumen menyusul.
+
+## Rencana Migrasi: n8n (Sumopod)
+
+Rancangan lengkap migrasi backend (finance-service + messaging-service) ke self-hosted n8n di Sumopod ada di **`n8n-migration/`** — folder itu punya CLAUDE.md sendiri. Isi: arsitektur target, pemetaan komponen lama → node n8n, prasyarat WA Cloud API, SQL tambahan (rate limit + insight cache pindah ke Supabase), desain workflow node-per-node yang memetakan `finance.route.js` 1:1, dan Code node classifier siap-tempel. Status: rancangan — belum dieksekusi. Motivasi: owner fokus ke aplikasi mobile, ops backend diserahkan ke n8n/Sumopod.
+
+## Rencana Migrasi: Official WhatsApp Business API
+
+Baileys (sekarang) bisa diganti ke Official WA API tanpa menyentuh `finance-service`. Hanya `messaging-service` yang berubah.
+
+**Harga di Indonesia:** IDR 0.0000 per service conversation (user kirim dulu → bot balas). Gratis untuk use case bot ini.
+
+**Perubahan `messaging-service`:**
+- Baileys listener → Express `POST /webhook` (Meta push ke endpoint ini)
+- `sock.sendMessage()` → `POST graph.facebook.com/v19.0/{PHONE_ID}/messages` + Bearer token
+
+**`finance-service` tidak disentuh** — interface `{ from, body }` → `{ reply }` tetap sama.
+
+**Prasyarat:** Meta Business Account + nomor HP baru (belum WA personal) + domain publik untuk webhook.
 
 ## Branch Strategy
 

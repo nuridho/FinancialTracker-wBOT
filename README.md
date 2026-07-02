@@ -91,6 +91,8 @@ Response:
 
 # 🗺️ Roadmap
 
+> 📚 **Dokumentasi lengkap + rencana migrasi n8n** ada di [`n8n-migration/`](n8n-migration/README.md) — 14 file bernomor: 01–11 dokumentasi proyek (overview, arsitektur, roles, auth, database, admin dashboard, API, roadmap, future features, mobile apps, backlog), 12–14 bahan eksekusi migrasi (prasyarat WA Cloud API, desain workflow, SQL inisiasi database lengkap). Status migrasi: rancangan, belum dieksekusi.
+
 ## 🚀 Version 1.0 — Public Beta
 
 > **Goal:** Deliver a stable, secure, and production-ready AI-powered personal finance bot for WhatsApp.
@@ -146,6 +148,7 @@ Important improvements after the public beta.
 | Better Error Handling       | ⏳ Planned |
 | Centralized Logger          | ⏳ Planned |
 | Persistent WhatsApp Session | ⏳ Planned |
+| Migrasi ke Official WhatsApp API | ⏳ Planned |
 
 ---
 
@@ -326,14 +329,14 @@ npm run test:unit    # assert pure-logic offline (parseCount, summarizeRecords) 
 | C | Switch antar rekening (rek_to ada di DB) | 5 |
 | D | Cek saldo spesifik | 4 |
 | E | Ringkasan semua saldo | 4 |
-| F | Rekap bulanan + rekap mingguan + AI insight | 5 |
+| F | Rekap bulanan + mingguan + custom periode + AI insight | 6 |
 | G | Ambiguous — tanpa nominal (wajib GENERAL) | 9 |
 | H | Non-finansial (wajib GENERAL) | 6 |
 | I | Prompt injection & security | 6 |
 | J | Undo transaksi terakhir & hapus by TRX ID | 3 |
 | K | Resync saldo dari histori transaksi | 3 |
 | L | Budget per kategori + progress setelah OUTCOME | 3 |
-| **Total** | | **69 kasus** |
+| **Total** | | **70 kasus** |
 
 ---
 
@@ -411,6 +414,7 @@ saldo BCA                     → 💰 Saldo BCA: Rp X.XXX.XXX
 keuangan gue gimana           → 💰 Ringkasan semua rekening
 rekap bulan ini               → 📊 Rekap + 🥇🥈🥉 Top 3 kategori + 💡 AI Insight (cache 1 jam)
 rekap mingguan                → 📊 Rekap Mingguan 7 hari mundur + Top 3 + AI Insight
+rekap dari tanggal 25         → 📊 Rekap periode custom (payday tgl 25, auto-compute bulan berjalan)
 undo                          → 🗑️ Hapus transaksi terakhir + rollback saldo
 hapus TRX-XXXXXXXX           → 🗑️ Hapus transaksi spesifik by ID + rollback saldo
 resync                        → 🔄 Rebuild semua saldo dari histori transaksi
